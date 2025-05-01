@@ -1,43 +1,96 @@
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React, { useEffect, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { supabase } from "../../supabase";
 
 const navItems = [
-  { path: '/admin/dashboard', label: 'Dashboard' },
-  { path: '/admin/users', label: 'Users' },
-  { path: '/admin/listings', label: 'Listings' },
-  { path: '/admin/reports', label: 'Reports' },
-  { path: '/admin/tickets', label: 'Tickets' },
-  { path: '/admin/email-templates', label: 'Email Templates' },
-  { path: '/admin/sms-settings', label: 'SMS Settings' },
-  { path: '/admin/smtp-settings', label: 'SMTP Settings' },
-  { path: '/admin/ads', label: 'Ads Manager' },
-  { path: '/admin/payments', label: 'Payments' },
-  { path: '/admin/payment-gateway-settings', label: 'Payment Gateway Settings' },
+  { path: "/admin/dashboard", label: "Dashboard", icon: "📊", roles: ["admin", "manager"] },
+  { path: "/admin/users", label: "Users", icon: "👥", roles: ["admin", "manager"] },
+  { path: "/admin/listings", label: "Listings", icon: "🏠", roles: ["admin", "manager"] },
+  { path: "/admin/tickets", label: "Tickets", icon: "🎫", roles: ["admin", "manager"] },
+  { path: "/admin/email-templates", label: "Email Templates", icon: "📧", roles: ["admin", "manager"] },
+  { path: "/admin/ads", label: "Ads Manager", icon: "📢", roles: ["admin", "manager"] },
+  { path: "/admin/payments", label: "Payment Settings", icon: "💰", roles: ["admin"] },
+  { path: "/admin/verification", label: "Agent Verification", icon: "✅", roles: ["admin"] },
+  { path: "/admin/broadcast", label: "Broadcast", icon: "📡", roles: ["admin"] },
+  { path: "/admin/analytics", label: "Analytics", icon: "📈", roles: ["admin"] },
+  { path: "/admin/logs", label: "Blacklist / Logs", icon: "🚫", roles: ["admin"] },
 ];
 
 export default function Sidebar() {
+  const [role, setRole] = useState("");
+  const [loading, setLoading] = useState(true);
   const location = useLocation();
+
+  useEffect(() => {
+    fetchUserRole();
+  }, []);
+
+  const fetchUserRole = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from("users")
+          .select("role")
+          .eq("id", session.user.id)
+          .single();
+          
+        setRole(profile?.role || "");
+      }
+    } catch (error) {
+      console.error("Error fetching user role:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <aside className="bg-gray-900 text-white w-64 min-h-screen px-4 py-6">
+        <div className="animate-pulse">
+          <div className="h-6 bg-gray-700 rounded w-3/4 mb-6"></div>
+          <div className="space-y-3">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="h-10 bg-gray-700 rounded"></div>
+            ))}
+          </div>
+        </div>
+      </aside>
+    );
+  }
 
   return (
     <aside className="bg-gray-900 text-white w-64 min-h-screen px-4 py-6">
-      <h2 className="text-xl font-bold mb-8">CampusMate Admin</h2>
-      <nav className="space-y-3">
-        {navItems.map((item) => (
-          <Link
-            key={item.path}
-            to={item.path}
-            className={`block px-3 py-2 rounded hover:bg-gray-700 transition ${
-              location.pathname === item.path ? 'bg-blue-600' : ''
-            }`}
-          >
-            {item.label}
-          </Link>
-        ))}
+      <div className="flex items-center space-x-3 mb-6">
+        <span className="text-2xl">🏠</span>
+        <h2 className="text-xl font-bold">Roomio Admin</h2>
+      </div>
+
+      <nav className="space-y-2">
+        {navItems
+          .filter((item) => item.roles.includes(role))
+          .map((item) => (
+            <Link
+              key={item.path}
+              to={item.path}
+              className={`flex items-center space-x-3 px-4 py-2.5 rounded-lg transition-colors ${
+                location.pathname === item.path
+                  ? "bg-blue-600 text-white"
+                  : "text-gray-300 hover:bg-gray-800 hover:text-white"
+              }`}
+            >
+              <span className="text-xl">{item.icon}</span>
+              <span>{item.label}</span>
+            </Link>
+          ))}
+
         <Link
           to="/admin/logout"
-          className="block px-3 py-2 rounded hover:bg-gray-700 transition text-red-400 mt-8"
+          className="flex items-center space-x-3 px-4 py-2.5 rounded-lg transition-colors text-gray-300 hover:bg-gray-800 hover:text-white mt-8"
         >
-          Logout
+          <span className="text-xl">🚪</span>
+          <span>Logout</span>
         </Link>
       </nav>
     </aside>
