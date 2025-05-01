@@ -33,6 +33,12 @@ export default function Sidebar() {
             {item.label}
           </Link>
         ))}
+        <Link
+          to="/admin/logout"
+          className="block px-3 py-2 rounded hover:bg-gray-700 transition text-red-400 mt-8"
+        >
+          Logout
+        </Link>
       </nav>
     </aside>
   );

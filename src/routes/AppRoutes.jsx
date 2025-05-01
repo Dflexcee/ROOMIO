@@ -1,5 +1,5 @@
 import React from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import AdminRoutes from "./AdminRoutes";
 import Home from "../pages/user/Home";
 import Login from "../pages/user/Login";
@@ -10,7 +10,7 @@ export default function AppRoutes() {
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/admin/*" element={<AdminRoutes />} />
-      <Route path="*" element={<div>404 Not Found</div>} />
+      <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );
 } 
