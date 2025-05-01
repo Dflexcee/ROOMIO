@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import AdminLayout from '../layouts/AdminLayout';
 import Dashboard from '../pages/admin/Dashboard';
 import Users from '../pages/admin/Users';
@@ -8,14 +8,16 @@ import Reports from '../pages/admin/Reports';
 import Tickets from '../pages/admin/Tickets';
 import EmailTemplates from '../pages/admin/EmailTemplates';
 import SMSSettings from '../pages/admin/SMSSettings';
+import SMTPSettings from '../pages/admin/SMTPSettings';
 import AdsManager from '../pages/admin/AdsManager';
 import Payments from '../pages/admin/Payments';
+import PaymentGatewaySettings from '../pages/admin/PaymentGatewaySettings';
 
 export default function AdminRoutes() {
   return (
     <Routes>
       <Route path="/admin/*" element={<AdminLayout />}>
-        <Route index element={<Dashboard />} />
+        <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="users" element={<Users />} />
         <Route path="listings" element={<Listings />} />
@@ -23,8 +25,10 @@ export default function AdminRoutes() {
         <Route path="tickets" element={<Tickets />} />
         <Route path="email-templates" element={<EmailTemplates />} />
         <Route path="sms-settings" element={<SMSSettings />} />
+        <Route path="smtp-settings" element={<SMTPSettings />} />
         <Route path="ads" element={<AdsManager />} />
         <Route path="payments" element={<Payments />} />
+        <Route path="payment-gateway-settings" element={<PaymentGatewaySettings />} />
       </Route>
     </Routes>
   );

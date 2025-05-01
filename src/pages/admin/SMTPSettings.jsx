@@ -12,7 +12,6 @@ export default function SMTPSettings() {
     sender_email: ""
   });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
   useEffect(() => {
     fetchSettings();
@@ -20,32 +19,22 @@ export default function SMTPSettings() {
 
   const fetchSettings = async () => {
     const { data, error } = await supabase.from("smtp_settings").select("*").limit(1).single();
-    if (error) setError("No SMTP settings found yet");
-    else setForm(data);
+    if (!error && data) setForm(data);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
     const { error } = await supabase
       .from("smtp_settings")
       .upsert([form], { onConflict: "id" });
-
-    if (error) {
-      alert("Failed to save settings.");
-      setError("Failed to save settings.");
-    } else {
-      alert("SMTP settings saved successfully.");
-      setError("");
-    }
-
+    if (error) alert("Failed to save settings.");
+    else alert("SMTP settings saved successfully.");
     setLoading(false);
   };
 
   return (
     <PageWrapper>
-      {error && <div className="bg-red-100 text-red-700 p-2 mb-4 rounded">{error}</div>}
       <h2 className="text-2xl font-bold mb-4">SMTP Settings</h2>
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow max-w-2xl">
         <input

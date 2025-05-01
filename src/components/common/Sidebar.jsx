@@ -9,8 +9,10 @@ const navItems = [
   { path: '/admin/tickets', label: 'Tickets' },
   { path: '/admin/email-templates', label: 'Email Templates' },
   { path: '/admin/sms-settings', label: 'SMS Settings' },
+  { path: '/admin/smtp-settings', label: 'SMTP Settings' },
   { path: '/admin/ads', label: 'Ads Manager' },
   { path: '/admin/payments', label: 'Payments' },
+  { path: '/admin/payment-gateway-settings', label: 'Payment Gateway Settings' },
 ];
 
 export default function Sidebar() {
