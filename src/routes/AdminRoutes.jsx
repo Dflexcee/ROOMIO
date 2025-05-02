@@ -15,6 +15,7 @@ import PaymentGatewaySettings from '../pages/admin/PaymentGatewaySettings';
 import ProtectedAdminRoute from './ProtectedAdminRoute';
 import AdminLogin from '../pages/admin/Login';
 import Logout from '../pages/admin/Logout';
+import Broadcast from '../pages/admin/Broadcast';
 
 const AdminRoutes = () => {
   return (
@@ -38,6 +39,7 @@ const AdminRoutes = () => {
           <Route path="ads" element={<AdsManager />} />
           <Route path="payments" element={<Payments />} />
           <Route path="payment-gateway-settings" element={<PaymentGatewaySettings />} />
+          <Route path="broadcast" element={<Broadcast />} />
         </Route>
       </Route>
 

@@ -1,3 +1,4 @@
+import React from "react";
 import { useEffect, useState } from "react";
 import { supabase } from "../../supabase";
 import PageWrapper from "../../components/common/PageWrapper";
@@ -9,6 +10,7 @@ export default function Broadcast() {
   const [channel, setChannel] = useState("email");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
+  const [bodyType, setBodyType] = useState("text"); // 'text' or 'html'
   const [sending, setSending] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
