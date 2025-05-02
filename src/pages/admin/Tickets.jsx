@@ -6,7 +6,6 @@ import TicketChat from "../../components/admin/TicketChat";
 export default function Tickets() {
   const [tickets, setTickets] = useState([]);
   const [selectedTicket, setSelectedTicket] = useState(null);
-  const [error, setError] = useState("");
 
   useEffect(() => {
     fetchTickets();
@@ -15,37 +14,46 @@ export default function Tickets() {
   const fetchTickets = async () => {
     const { data, error } = await supabase
       .from("support_tickets")
-      .select("*")
+      .select("*, users(full_name, email)")
       .order("created_at", { ascending: false });
 
-    if (error) setError("Failed to load tickets: " + error.message);
-    else setTickets(data);
+    if (!error) setTickets(data);
   };
 
   return (
     <PageWrapper>
-      {error && <div className="bg-red-100 text-red-700 p-2 mb-4 rounded">{error}</div>}
-      <h2 className="text-2xl font-bold mb-4">🧾 Support Tickets</h2>
+      <h2 className="text-2xl font-bold mb-4">📨 Support Tickets</h2>
+
       <div className="flex gap-6">
         <div className="w-1/3 space-y-2 overflow-y-auto h-[80vh]">
-          {tickets.map((ticket) => (
-            <div
-              key={ticket.id}
-              onClick={() => setSelectedTicket(ticket)}
-              className={`p-4 rounded shadow cursor-pointer ${
-                selectedTicket?.id === ticket.id ? "bg-blue-100" : "bg-white"
-              }`}
-            >
-              <h4 className="font-semibold text-sm">{ticket.subject}</h4>
-              <p className="text-xs text-gray-500">Status: {ticket.status}</p>
-            </div>
-          ))}
+          {tickets.length === 0 ? (
+            <p className="text-sm text-gray-500">No tickets submitted yet.</p>
+          ) : (
+            tickets.map((ticket) => (
+              <div
+                key={ticket.id}
+                onClick={() => setSelectedTicket(ticket)}
+                className={`p-4 rounded shadow cursor-pointer ${
+                  selectedTicket?.id === ticket.id ? "bg-blue-100" : "bg-white"
+                }`}
+              >
+                <h4 className="font-semibold text-sm">{ticket.subject}</h4>
+                <p className="text-xs text-gray-600">
+                  {ticket.users?.full_name || "User"} – {ticket.status}
+                </p>
+                <p className="text-xs text-gray-400">
+                  {new Date(ticket.created_at).toLocaleString()}
+                </p>
+              </div>
+            ))
+          )}
         </div>
+
         <div className="flex-1">
           {selectedTicket ? (
             <TicketChat ticket={selectedTicket} />
           ) : (
-            <div className="text-gray-500 mt-10">Select a ticket to view conversation</div>
+            <p className="text-gray-500 mt-10">Select a ticket to view messages.</p>
           )}
         </div>
       </div>

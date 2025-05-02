@@ -17,6 +17,7 @@ import AdminLogin from '../pages/admin/Login';
 import Logout from '../pages/admin/Logout';
 import Broadcast from '../pages/admin/Broadcast';
 import Blacklist from '../pages/admin/Blacklist';
+import Analytics from '../pages/admin/Analytics';
 
 const AdminRoutes = () => {
   return (
@@ -42,6 +43,7 @@ const AdminRoutes = () => {
           <Route path="payment-gateway-settings" element={<PaymentGatewaySettings />} />
           <Route path="broadcast" element={<Broadcast />} />
           <Route path="blacklist" element={<Blacklist />} />
+          <Route path="analytics" element={<Analytics />} />
         </Route>
       </Route>
 
