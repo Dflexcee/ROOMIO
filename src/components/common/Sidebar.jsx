@@ -13,7 +13,7 @@ const navItems = [
   { path: "/admin/verification", label: "Agent Verification", icon: "✅", roles: ["admin"] },
   { path: "/admin/broadcast", label: "Broadcast", icon: "📡", roles: ["admin"] },
   { path: "/admin/analytics", label: "Analytics", icon: "📈", roles: ["admin"] },
-  { path: "/admin/logs", label: "Blacklist / Logs", icon: "🚫", roles: ["admin"] },
+  { path: "/admin/blacklist", label: "Blacklist / Logs", icon: "🚫", roles: ["admin"] },
   { path: "/admin/smtp-settings", label: "SMTP Settings", icon: "📨", roles: ["admin"] },
   { path: "/admin/sms-settings", label: "SMS Settings", icon: "📱", roles: ["admin"] },
 ];

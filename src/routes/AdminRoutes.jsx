@@ -16,6 +16,7 @@ import ProtectedAdminRoute from './ProtectedAdminRoute';
 import AdminLogin from '../pages/admin/Login';
 import Logout from '../pages/admin/Logout';
 import Broadcast from '../pages/admin/Broadcast';
+import Blacklist from '../pages/admin/Blacklist';
 
 const AdminRoutes = () => {
   return (
@@ -40,6 +41,7 @@ const AdminRoutes = () => {
           <Route path="payments" element={<Payments />} />
           <Route path="payment-gateway-settings" element={<PaymentGatewaySettings />} />
           <Route path="broadcast" element={<Broadcast />} />
+          <Route path="blacklist" element={<Blacklist />} />
         </Route>
       </Route>
 
