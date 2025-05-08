@@ -10,12 +10,15 @@ const navItems = [
   { path: "/admin/email-templates", label: "Email Templates", icon: "📧", roles: ["admin", "manager"] },
   { path: "/admin/ads", label: "Ads Manager", icon: "📢", roles: ["admin", "manager"] },
   { path: "/admin/payments", label: "Payment Settings", icon: "💰", roles: ["admin"] },
+  { path: "/admin/user-access", label: "User Access", icon: "🔐", roles: ["admin"] },
+  { path: "/admin/grant-access", label: "Grant Feature Access", icon: "🎁", roles: ["admin"] },
   { path: "/admin/verification", label: "Agent Verification", icon: "✅", roles: ["admin"] },
   { path: "/admin/broadcast", label: "Broadcast", icon: "📡", roles: ["admin"] },
   { path: "/admin/analytics", label: "Analytics", icon: "📈", roles: ["admin"] },
   { path: "/admin/blacklist", label: "Blacklist / Logs", icon: "🚫", roles: ["admin"] },
   { path: "/admin/smtp-settings", label: "SMTP Settings", icon: "📨", roles: ["admin"] },
   { path: "/admin/sms-settings", label: "SMS Settings", icon: "📱", roles: ["admin"] },
+  { path: "/admin/admin-manager-details", label: "Admin & Manager Details", icon: "🛡️", roles: ["admin"] },
 ];
 
 export default function Sidebar() {

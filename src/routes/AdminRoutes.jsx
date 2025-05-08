@@ -18,6 +18,9 @@ import Logout from '../pages/admin/Logout';
 import Broadcast from '../pages/admin/Broadcast';
 import Blacklist from '../pages/admin/Blacklist';
 import Analytics from '../pages/admin/Analytics';
+import UserAccessManager from '../pages/admin/UserAccessManager';
+import AdminManagerDetails from '../pages/admin/AdminManagerDetails';
+import GrantFeatureAccess from '../pages/admin/GrantFeatureAccess';
 
 const AdminRoutes = () => {
   return (
@@ -44,6 +47,9 @@ const AdminRoutes = () => {
           <Route path="broadcast" element={<Broadcast />} />
           <Route path="blacklist" element={<Blacklist />} />
           <Route path="analytics" element={<Analytics />} />
+          <Route path="user-access" element={<UserAccessManager />} />
+          <Route path="grant-access" element={<GrantFeatureAccess />} />
+          <Route path="admin-manager-details" element={<AdminManagerDetails />} />
         </Route>
       </Route>
 
