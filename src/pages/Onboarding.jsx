@@ -1,6 +1,7 @@
 import React from "react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import DarkModeToggle from "../components/common/DarkModeToggle";
 
 const slides = [
   {
@@ -48,23 +49,24 @@ export default function Onboarding() {
     if (index < slides.length - 1) {
       setIndex(index + 1);
     } else {
-      navigate("/signup");
+      navigate("/signup-login");
     }
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-100 via-white to-blue-50 p-6">
-      <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-lg w-full text-center animate-fade-in">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-gray-900 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors">
+      <DarkModeToggle />
+      <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl p-8 max-w-lg w-full text-center animate-fade-in border border-blue-100 dark:border-gray-800">
         {slides[index].illustration}
-        <h2 className="text-2xl md:text-3xl font-extrabold mb-4 text-blue-700 drop-shadow-sm transition-all duration-300">
+        <h2 className="text-2xl md:text-3xl font-extrabold mb-4 text-blue-700 dark:text-pink-400 drop-shadow-sm transition-all duration-300">
           {slides[index].title}
         </h2>
-        <p className="text-gray-700 mb-6 text-lg md:text-xl transition-all duration-300">
+        <p className="text-gray-700 dark:text-gray-200 mb-6 text-lg md:text-xl transition-all duration-300">
           {slides[index].description}
         </p>
         <button
           onClick={next}
-          className="bg-gradient-to-r from-blue-500 to-blue-700 text-white px-8 py-3 rounded-full shadow-lg hover:scale-105 hover:from-blue-600 hover:to-blue-800 transition-all text-lg font-semibold"
+          className="bg-gradient-to-r from-pink-500 to-yellow-500 dark:from-blue-700 dark:to-purple-700 text-white px-8 py-3 rounded-full shadow-lg hover:scale-105 hover:from-pink-600 hover:to-yellow-600 dark:hover:from-blue-800 dark:hover:to-purple-800 transition-all text-lg font-semibold"
         >
           {index < slides.length - 1 ? "Next" : "Get Started"}
         </button>
@@ -75,12 +77,12 @@ export default function Onboarding() {
           <span
             key={i}
             className={`h-3 w-3 rounded-full transition-all duration-300 shadow-sm ${
-              i === index ? "bg-blue-600 scale-125" : "bg-gray-300"
+              i === index ? "bg-pink-500 dark:bg-blue-500 scale-125" : "bg-gray-300 dark:bg-gray-700"
             }`}
           ></span>
         ))}
       </div>
-      <div className="mt-10 text-gray-400 text-xs tracking-wide">
+      <div className="mt-10 text-gray-400 dark:text-gray-500 text-xs tracking-wide">
         &copy; {new Date().getFullYear()} CampusMate. All rights reserved.
       </div>
     </div>
