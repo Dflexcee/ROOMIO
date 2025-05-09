@@ -70,6 +70,7 @@ export default function UserAccessManager() {
   const [editForm, setEditForm] = useState({ full_name: "", phone: "" });
   const [saving, setSaving] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   useEffect(() => {
     fetchData();
@@ -226,6 +227,18 @@ export default function UserAccessManager() {
           <span className="absolute left-2 top-2.5 text-gray-400">🔍</span>
         </div>
       </div>
+
+      {loading && (
+        <div className="w-full mb-4">
+          <div className="bg-gray-200 rounded-full h-4">
+            <div
+              className="bg-blue-500 h-4 rounded-full transition-all duration-300"
+              style={{ width: `${uploadProgress}%` }}
+            ></div>
+          </div>
+          <div className="text-center text-sm mt-1 text-blue-700">{uploadProgress}%</div>
+        </div>
+      )}
 
       {filteredUsers.length === 0 ? (
         <div className="text-center py-8 text-gray-500">

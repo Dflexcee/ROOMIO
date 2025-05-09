@@ -3,6 +3,7 @@ import { supabase } from "../supabase";
 import PageWrapper from "../components/common/PageWrapper";
 import BecomeVerifiedForm from "../components/user/BecomeVerifiedForm";
 import DarkModeToggle from "../components/common/DarkModeToggle";
+import { useNavigate } from "react-router-dom";
 
 export default function PostRoom() {
   const [user, setUser] = useState(null);
@@ -19,6 +20,7 @@ export default function PostRoom() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [uploadProgress, setUploadProgress] = useState(0);
+  const navigate = useNavigate();
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
@@ -114,6 +116,15 @@ export default function PostRoom() {
   return (
     <PageWrapper>
       <div className="absolute top-6 right-8"><DarkModeToggle /></div>
+      <div className="absolute top-6 left-4 z-50">
+        <button
+          onClick={() => navigate('/dashboard')}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded shadow font-semibold transition text-sm md:text-base md:px-4 md:py-2 w-full md:w-auto mt-2 md:mt-0"
+          style={{ minWidth: 0 }}
+        >
+          ← Dashboard
+        </button>
+      </div>
       <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-gray-900 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors px-4">
         <div className="w-full max-w-3xl mx-auto bg-white dark:bg-gray-900 rounded-3xl shadow-2xl p-8 border border-blue-100 dark:border-gray-800 animate-fade-in">
           <h2 className="text-2xl md:text-3xl font-extrabold mb-6 text-blue-700 dark:text-pink-400 drop-shadow-sm transition-all duration-300 text-center">✍️ Post a Room</h2>

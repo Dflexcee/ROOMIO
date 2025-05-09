@@ -1,5 +1,6 @@
 import React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "../../supabase";
 
 export default function BecomeVerifiedForm({ userId, onSuccess }) {
@@ -7,7 +8,27 @@ export default function BecomeVerifiedForm({ userId, onSuccess }) {
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
+  const [verificationStatus, setVerificationStatus] = useState(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Check current verification status
+    const checkVerificationStatus = async () => {
+      const { data, error } = await supabase
+        .from('users')
+        .select('verification_status')
+        .eq('id', userId)
+        .single();
+
+      if (!error && data) {
+        setVerificationStatus(data.verification_status);
+      }
+    };
+
+    checkVerificationStatus();
+  }, [userId]);
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
@@ -41,6 +62,7 @@ export default function BecomeVerifiedForm({ userId, onSuccess }) {
 
     setLoading(true);
     setError(null);
+    setSuccess(false);
 
     try {
       // Upload file to Supabase Storage
@@ -74,6 +96,8 @@ export default function BecomeVerifiedForm({ userId, onSuccess }) {
         URL.revokeObjectURL(previewUrl);
       }
 
+      setVerificationStatus("pending");
+      setSuccess(true);
       onSuccess?.();
     } catch (err) {
       setError(err.message);
@@ -82,6 +106,93 @@ export default function BecomeVerifiedForm({ userId, onSuccess }) {
     }
   };
 
+  // Show verification status if pending or approved
+  if (verificationStatus === "pending" || verificationStatus === "approved") {
+    return (
+      <div className="bg-white p-6 rounded-lg shadow-lg max-w-xl mx-auto">
+        <div className="text-center">
+          {verificationStatus === "pending" ? (
+            <>
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100 mb-4">
+                <svg className="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Verification Pending</h2>
+              <p className="text-gray-600 mb-4">
+                Your verification request is being reviewed. This usually takes 1-2 business days.
+              </p>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                <p className="text-sm text-blue-700">
+                  <span className="font-semibold">What happens next?</span>
+                  <ul className="list-disc list-inside mt-2 space-y-1">
+                    <li>Our team will review your submitted ID</li>
+                    <li>You'll receive an email notification once verified</li>
+                    <li>You can start posting rooms after verification</li>
+                  </ul>
+                </p>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+                <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Verification Approved!</h2>
+              <p className="text-gray-600 mb-4">
+                Your account has been verified. You can now post rooms and access all features.
+              </p>
+            </>
+          )}
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors"
+          >
+            Return to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show success message after submission
+  if (success) {
+    return (
+      <div className="bg-white p-6 rounded-lg shadow-lg max-w-xl mx-auto">
+        <div className="text-center">
+          <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+            <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Verification Submitted!</h2>
+          <p className="text-gray-600 mb-4">
+            Your verification request has been submitted successfully. Our team will review your ID and get back to you within 1-2 business days.
+          </p>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <p className="text-sm text-blue-700">
+              <span className="font-semibold">What happens next?</span>
+              <ul className="list-disc list-inside mt-2 space-y-1">
+                <li>Our team will review your submitted ID</li>
+                <li>You'll receive an email notification once verified</li>
+                <li>You can start posting rooms after verification</li>
+              </ul>
+            </p>
+          </div>
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors"
+          >
+            Return to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show the form if no verification status or not pending/approved
   return (
     <div className="bg-white p-6 rounded-lg shadow-lg max-w-xl mx-auto">
       <div className="text-center mb-6">
@@ -161,16 +272,14 @@ export default function BecomeVerifiedForm({ userId, onSuccess }) {
                         id="file-upload"
                         name="file-upload"
                         type="file"
-                        accept="image/*"
                         className="sr-only"
+                        accept="image/*"
                         onChange={handleFileChange}
                       />
                     </label>
                     <p className="pl-1">or drag and drop</p>
                   </div>
-                  <p className="text-xs text-gray-500">
-                    PNG, JPG, GIF up to 5MB
-                  </p>
+                  <p className="text-xs text-gray-500">PNG, JPG, GIF up to 5MB</p>
                 </>
               )}
             </div>

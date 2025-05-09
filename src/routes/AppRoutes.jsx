@@ -10,6 +10,8 @@ import Dashboard from "../pages/Dashboard";
 import FindRoommate from "../pages/FindRoommate";
 import FindRoom from "../pages/FindRoom";
 import PostRoom from "../pages/PostRoom";
+import ScamBoard from "../pages/ScamBoard";
+import CommunityFeed from "../pages/CommunityFeed";
 
 export default function AppRoutes() {
   return (
@@ -23,6 +25,8 @@ export default function AppRoutes() {
       <Route path="/find-roommate" element={<FindRoommate />} />
       <Route path="/find-room" element={<FindRoom />} />
       <Route path="/post-room" element={<PostRoom />} />
+      <Route path="/scam-board" element={<ScamBoard />} />
+      <Route path="/community" element={<CommunityFeed />} />
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );
