@@ -19,6 +19,8 @@ export default function ProfileSetup() {
   const [profilePic, setProfilePic] = useState(null);
   const [userId, setUserId] = useState(null);
   const navigate = useNavigate();
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
@@ -28,26 +30,34 @@ export default function ProfileSetup() {
   }, []);
 
   const handleSubmit = async () => {
+    setError("");
+    setLoading(true);
     let avatarUrl = null;
 
     if (profilePic) {
       const fileName = `profile-${userId}-${Date.now()}`;
       const { error: uploadError } = await supabase.storage
         .from("avatars")
-        .upload(fileName, profilePic);
+        .upload(fileName, profilePic, { upsert: true });
 
-      if (!uploadError) {
-        const { data } = supabase.storage.from("avatars").getPublicUrl(fileName);
-        avatarUrl = data.publicUrl;
+      if (uploadError) {
+        setError("Failed to upload profile picture.");
+        setLoading(false);
+        return;
       }
+      const { data } = supabase.storage.from("avatars").getPublicUrl(fileName);
+      avatarUrl = data.publicUrl;
     }
 
-    const { error } = await supabase.from("users").update({
+    const { error } = await supabase.from("users").upsert({
+      id: userId,
       ...form,
       avatar_url: avatarUrl,
-    }).eq("id", userId);
+    });
 
+    setLoading(false);
     if (!error) navigate("/dashboard");
+    else setError("Failed to save profile. Please try again.");
   };
 
   return (
@@ -57,6 +67,7 @@ export default function ProfileSetup() {
       </div>
       <div className="max-w-2xl mx-auto p-6 bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full border border-blue-100 dark:border-gray-800 animate-fade-in">
         <h2 className="text-2xl md:text-3xl font-extrabold mb-4 text-blue-700 dark:text-pink-400 drop-shadow-sm transition-all duration-300">👤 Complete Your Profile</h2>
+        {error && <div className="text-red-600 mb-2">{error}</div>}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <input
@@ -136,9 +147,10 @@ export default function ProfileSetup() {
 
         <button
           onClick={handleSubmit}
-          className="mt-6 bg-gradient-to-r from-pink-500 to-yellow-500 dark:from-blue-700 dark:to-purple-700 text-white px-8 py-3 rounded-full shadow-lg hover:scale-105 hover:from-pink-600 hover:to-yellow-600 dark:hover:from-blue-800 dark:hover:to-purple-800 transition-all text-lg font-semibold w-full mb-2"
+          disabled={loading}
+          className="mt-6 bg-gradient-to-r from-pink-500 to-yellow-500 dark:from-blue-700 dark:to-purple-700 text-white px-8 py-3 rounded-full shadow-lg hover:scale-105 hover:from-pink-600 hover:to-yellow-600 dark:hover:from-blue-800 dark:hover:to-purple-800 transition-all text-lg font-semibold w-full mb-2 disabled:opacity-60"
         >
-          Save & Continue
+          {loading ? "Saving..." : "Save & Continue"}
         </button>
       </div>
     </div>

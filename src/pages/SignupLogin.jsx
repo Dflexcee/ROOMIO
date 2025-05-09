@@ -20,13 +20,63 @@ export default function SignupLogin() {
     if (isLogin) {
       result = await supabase.auth.signInWithPassword({ email, password });
     } else {
+      // Before signup, check if email already exists
+      const { data: existingUser } = await supabase
+        .from("users")
+        .select("id")
+        .eq("email", email)
+        .single();
+      if (existingUser) {
+        setError("An account with this email already exists. Please log in.");
+        setLoading(false);
+        return;
+      }
       result = await supabase.auth.signUp({ email, password });
     }
 
     if (result.error) {
+      console.error('Login/Signup error:', result.error, result);
       setError(result.error.message);
     } else {
-      navigate("/profile-setup");
+      // If signup, insert a user row immediately only if it doesn't exist
+      if (!isLogin && result.data?.user) {
+        const { data: existingUser } = await supabase
+          .from("users")
+          .select("id")
+          .eq("id", result.data.user.id)
+          .single();
+        if (!existingUser) {
+          await supabase.from("users").insert({
+            id: result.data.user.id,
+            email: result.data.user.email,
+          });
+        }
+      }
+      // After login/signup, check if profile is complete
+      const userId = result.data?.user?.id;
+      if (userId) {
+        const { data: profile } = await supabase
+          .from("users")
+          .select("*")
+          .eq("id", userId)
+          .single();
+        const isProfileComplete =
+          profile &&
+          profile.full_name &&
+          profile.age &&
+          profile.university &&
+          profile.department &&
+          profile.budget_range &&
+          profile.lifestyle &&
+          profile.about_me;
+        if (isProfileComplete) {
+          navigate("/dashboard");
+        } else {
+          navigate("/profile-setup");
+        }
+      } else {
+        navigate("/profile-setup");
+      }
     }
 
     setLoading(false);

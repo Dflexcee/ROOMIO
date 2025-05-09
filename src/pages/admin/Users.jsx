@@ -200,6 +200,36 @@ export default function Users() {
     return matchesSearch && matchesVerification && matchesStatus;
   });
 
+  // Confirm email for a user (client-side, updates a custom field in users table)
+  const confirmUserEmail = async (userId) => {
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({ email_confirmed: true })
+        .eq('id', userId);
+      if (error) throw error;
+      alert('Email confirmed!');
+      fetchUsers();
+    } catch (err) {
+      alert('Failed to confirm email: ' + (err.message || err));
+    }
+  };
+
+  // Confirm verification for a user (client-side, updates is_verified field)
+  const confirmUserVerification = async (userId) => {
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({ is_verified: true })
+        .eq('id', userId);
+      if (error) throw error;
+      alert('User verified!');
+      fetchUsers();
+    } catch (err) {
+      alert('Failed to verify user: ' + (err.message || err));
+    }
+  };
+
   return (
     <PageWrapper>
       <EditProfileModal
@@ -352,6 +382,18 @@ export default function Users() {
                             className="bg-blue-600 text-white px-3 py-1 rounded text-xs mr-2"
                           >
                             Edit Profile
+                          </button>
+                          <button
+                            onClick={() => confirmUserEmail(user.id)}
+                            className="bg-green-600 text-white px-3 py-1 rounded text-xs mr-2"
+                          >
+                            Confirm Email
+                          </button>
+                          <button
+                            onClick={() => confirmUserVerification(user.id)}
+                            className="bg-purple-600 text-white px-3 py-1 rounded text-xs mr-2"
+                          >
+                            Confirm Verification
                           </button>
                           {user.status !== 'active' && (
                             <button
