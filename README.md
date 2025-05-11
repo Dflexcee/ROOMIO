@@ -130,5 +130,4 @@ Here’s a complete professional summary and feature list of the **CampusMate** 
 
 ---
 
-Would you like this saved as a clean PDF or copied as a formatted doc you can share directly?
-
+BY COLLINS EZIH (FLEXCEETECH)
