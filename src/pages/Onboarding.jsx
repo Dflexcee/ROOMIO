@@ -54,36 +54,40 @@ export default function Onboarding() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-gray-900 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors">
-      <DarkModeToggle />
-      <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl p-8 max-w-lg w-full text-center animate-fade-in border border-blue-100 dark:border-gray-800">
-        {slides[index].illustration}
-        <h2 className="text-2xl md:text-3xl font-extrabold mb-4 text-blue-700 dark:text-pink-400 drop-shadow-sm transition-all duration-300">
-          {slides[index].title}
-        </h2>
-        <p className="text-gray-700 dark:text-gray-200 mb-6 text-lg md:text-xl transition-all duration-300">
-          {slides[index].description}
-        </p>
-        <button
-          onClick={next}
-          className="bg-gradient-to-r from-pink-500 to-yellow-500 dark:from-blue-700 dark:to-purple-700 text-white px-8 py-3 rounded-full shadow-lg hover:scale-105 hover:from-pink-600 hover:to-yellow-600 dark:hover:from-blue-800 dark:hover:to-purple-800 transition-all text-lg font-semibold"
-        >
-          {index < slides.length - 1 ? "Next" : "Get Started"}
-        </button>
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-gray-900 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors">
+      <div className="flex justify-center pt-4">
+        <DarkModeToggle />
       </div>
+      <div className="flex-1 flex flex-col items-center justify-center p-4">
+        <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl p-8 max-w-lg w-full text-center animate-fade-in border border-blue-100 dark:border-gray-800">
+          {slides[index].illustration}
+          <h2 className="text-2xl md:text-3xl font-extrabold mb-4 text-blue-700 dark:text-pink-400 drop-shadow-sm transition-all duration-300">
+            {slides[index].title}
+          </h2>
+          <p className="text-gray-700 dark:text-gray-200 mb-6 text-lg md:text-xl transition-all duration-300">
+            {slides[index].description}
+          </p>
+          <button
+            onClick={next}
+            className="bg-gradient-to-r from-pink-500 to-yellow-500 dark:from-blue-700 dark:to-purple-700 text-white px-8 py-3 rounded-full shadow-lg hover:scale-105 hover:from-pink-600 hover:to-yellow-600 dark:hover:from-blue-800 dark:hover:to-purple-800 transition-all text-lg font-semibold"
+          >
+            {index < slides.length - 1 ? "Next" : "Get Started"}
+          </button>
+        </div>
 
-      <div className="flex gap-2 mt-8">
-        {slides.map((_, i) => (
-          <span
-            key={i}
-            className={`h-3 w-3 rounded-full transition-all duration-300 shadow-sm ${
-              i === index ? "bg-pink-500 dark:bg-blue-500 scale-125" : "bg-gray-300 dark:bg-gray-700"
-            }`}
-          ></span>
-        ))}
-      </div>
-      <div className="mt-10 text-gray-400 dark:text-gray-500 text-xs tracking-wide">
-        &copy; {new Date().getFullYear()} CampusMate. All rights reserved.
+        <div className="flex gap-2 mt-8">
+          {slides.map((_, i) => (
+            <span
+              key={i}
+              className={`h-3 w-3 rounded-full transition-all duration-300 shadow-sm ${
+                i === index ? "bg-pink-500 dark:bg-blue-500 scale-125" : "bg-gray-300 dark:bg-gray-700"
+              }`}
+            ></span>
+          ))}
+        </div>
+        <div className="mt-10 text-gray-400 dark:text-gray-500 text-xs tracking-wide">
+          &copy; {new Date().getFullYear()} CampusMate. All rights reserved.
+        </div>
       </div>
     </div>
   );

@@ -1,16 +1,20 @@
 import React, { useState } from "react";
 import { loginWithEmail } from "../../services/authService"
 import PageWrapper from "../../components/common/PageWrapper"
+import { useNavigate } from "react-router-dom";
 
 export default function Login() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
+  const navigate = useNavigate();
 
   const handleLogin = async () => {
     const { user, error } = await loginWithEmail(email, password)
     if (error) setError(error.message)
-    else alert("Welcome! Logged in successfully.")
+    else {
+      navigate("/dashboard");
+    }
   }
 
   return (
