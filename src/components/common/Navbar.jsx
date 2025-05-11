@@ -7,6 +7,7 @@ const navLinks = [
   { to: "/find-room", label: "Find Room" },
   { to: "/find-roommate", label: "Find Roommate" },
   { to: "/profile-setup", label: "Edit Profile" },
+  { to: "/help-center", label: "👉 Help Center" },
   // Add more pages here as needed
 ];
 
