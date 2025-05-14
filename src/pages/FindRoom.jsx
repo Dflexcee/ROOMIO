@@ -138,6 +138,10 @@ export default function FindRoom() {
     );
   };
 
+  const handleChat = (targetUserId) => {
+    navigate(`/chat/${targetUserId}`);
+  };
+
   return (
     <>
       <Navbar />
@@ -233,9 +237,15 @@ export default function FindRoom() {
                     </div>
                     <button
                       onClick={() => { setSelectedRoom(room); setShowModal(true); }}
-                      className="mt-auto bg-gradient-to-r from-pink-500 to-yellow-500 dark:from-blue-700 dark:to-purple-700 text-white px-3 py-1 rounded-full text-xs font-semibold shadow hover:scale-105 transition"
+                      className="mt-2 bg-gradient-to-r from-pink-500 to-yellow-500 dark:from-blue-700 dark:to-purple-700 text-white px-3 py-1 rounded-full text-xs font-semibold shadow hover:scale-105 transition"
                     >
                       View Details
+                    </button>
+                    <button
+                      onClick={() => handleChat(room.user_id)}
+                      className="mt-2 bg-blue-600 text-white px-4 py-1 rounded text-sm font-semibold shadow hover:bg-blue-700 transition"
+                    >
+                      💬 Chat with Poster
                     </button>
                   </div>
                 ))}

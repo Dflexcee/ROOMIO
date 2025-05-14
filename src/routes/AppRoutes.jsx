@@ -14,6 +14,10 @@ import PostRoom from "../pages/PostRoom";
 import ScamBoard from "../pages/ScamBoard";
 import CommunityFeed from "../pages/CommunityFeed";
 import HelpCenter from "../pages/HelpCenter";
+import MyRooms from "../pages/MyRooms";
+import EditRoom from "../pages/EditRoom";
+import Inbox from "../pages/Inbox";
+import ChatDetail from "../pages/ChatDetail";
 
 // Protected Route component
 const ProtectedRoute = ({ children }) => {
@@ -41,6 +45,10 @@ export default function AppRoutes() {
       <Route path="/scam-board" element={<ScamBoard />} />
       <Route path="/community" element={<CommunityFeed />} />
       <Route path="/help-center" element={<ProtectedRoute><HelpCenter /></ProtectedRoute>} />
+      <Route path="/my-rooms" element={<ProtectedRoute><MyRooms /></ProtectedRoute>} />
+      <Route path="/edit-room/:id" element={<ProtectedRoute><EditRoom /></ProtectedRoute>} />
+      <Route path="/inbox" element={<ProtectedRoute><Inbox /></ProtectedRoute>} />
+      <Route path="/chat/:userId" element={<ProtectedRoute><ChatDetail /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );

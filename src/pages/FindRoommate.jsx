@@ -74,6 +74,10 @@ export default function FindRoommate() {
   const [tinderIdx, setTinderIdx] = useState(0);
   const tinderUser = filtered[tinderIdx] || null;
 
+  const handleChat = (targetUserId) => {
+    navigate(`/chat/${targetUserId}`);
+  };
+
   return (
     <>
       <Navbar />
@@ -182,7 +186,13 @@ export default function FindRoommate() {
                     <p className="text-xs text-gray-700 dark:text-gray-200 mb-1">{user.budget_range}</p>
                     <p className="text-xs text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">{user.about_me}</p>
                     <button
-                      className="mt-auto bg-gradient-to-r from-pink-500 to-yellow-500 dark:from-blue-700 dark:to-purple-700 text-white px-3 py-1 rounded-full text-xs font-semibold shadow hover:scale-105 transition"
+                      className="mt-2 bg-blue-600 text-white px-4 py-1 rounded text-sm font-semibold shadow hover:bg-blue-700 transition"
+                      onClick={() => handleChat(user.id)}
+                    >
+                      💬 Chat
+                    </button>
+                    <button
+                      className="mt-2 bg-gradient-to-r from-pink-500 to-yellow-500 dark:from-blue-700 dark:to-purple-700 text-white px-3 py-1 rounded-full text-xs font-semibold shadow hover:scale-105 transition"
                       onClick={() => { setSelectedUser(user); setShowModal(true); }}
                     >
                       View Profile
