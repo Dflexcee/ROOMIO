@@ -1,25 +1,63 @@
-import { supabase } from '../supabase'
+import config from '../config/api.js'
 
 // Register user
 export async function signUpWithEmail(email, password) {
-  const { data, error } = await supabase.auth.signUp({ email, password })
-  return { user: data?.user, error }
+  try {
+    const res = await fetch(config.getUrl(config.endpoints.auth.register), {
+      method: 'POST',
+      headers: config.getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify({ email, password })
+    })
+    const data = await res.json()
+    if (!res.ok) return { user: null, error: new Error(data?.error || 'Register failed') }
+    return { user: data.user, error: null }
+  } catch (e) {
+    return { user: null, error: e }
+  }
 }
 
 // Login user
 export async function loginWithEmail(email, password) {
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-  return { user: data?.user, error }
+  try {
+    const res = await fetch(config.getUrl(config.endpoints.auth.login), {
+      method: 'POST',
+      headers: config.getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify({ email, password })
+    })
+    const data = await res.json()
+    if (!res.ok) return { user: null, error: new Error(data?.error || 'Login failed') }
+    return { user: data.user, error: null }
+  } catch (e) {
+    return { user: null, error: e }
+  }
 }
 
 // Logout user
 export async function logout() {
-  const { error } = await supabase.auth.signOut()
-  return { error }
+  try {
+    const res = await fetch(config.getUrl(config.endpoints.auth.logout), {
+      method: 'POST',
+      credentials: 'include'
+    })
+    if (!res.ok) return { error: new Error('Logout failed') }
+    return { error: null }
+  } catch (e) {
+    return { error: e }
+  }
 }
 
 // Get current user
 export async function getCurrentUser() {
-  const { data, error } = await supabase.auth.getUser()
-  return { user: data?.user, error }
+  try {
+    const res = await fetch(config.getUrl(config.endpoints.auth.me), {
+      method: 'GET',
+      credentials: 'include'
+    })
+    const data = await res.json()
+    return { user: data?.user || null, error: null }
+  } catch (e) {
+    return { user: null, error: e }
+  }
 } 

@@ -1,40 +1,38 @@
 import React, { useEffect, useState } from "react";
-import { supabase } from "../supabase";
+import { useAuth } from "../contexts/AuthContext";
 import PageWrapper from "../components/common/PageWrapper";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/common/Navbar";
 import DarkModeToggle from "../components/common/DarkModeToggle";
+import config from "../config/api.js";
 
 export default function MyRooms() {
-  const [userId, setUserId] = useState(null);
+  const { user, loading: authLoading } = useAuth();
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
-    supabase.auth.getUser().then(async ({ data }) => {
-      const uid = data?.user?.id;
-      if (uid) {
-        setUserId(uid);
-        fetchMyRooms(uid);
-      } else {
-        setLoading(false);
-      }
-    });
-  }, []);
+    if (user) {
+      fetchMyRooms();
+    }
+  }, [user]);
 
-  const fetchMyRooms = async (uid) => {
+  const fetchMyRooms = async () => {
     setLoading(true);
     setError("");
     try {
-      const { data, error } = await supabase
-        .from("rooms")
-        .select("*")
-        .eq("user_id", uid)
-        .order("posted_at", { ascending: false });
-      if (error) throw error;
-      setRooms(data || []);
+      const response = await fetch(config.getUrl(config.endpoints.rooms.mine), {
+        credentials: 'include'
+      });
+      const data = await response.json();
+      
+      if (response.ok) {
+        setRooms(data.rooms || []);
+      } else {
+        setError("Failed to load your rooms. Please try again.");
+      }
     } catch (err) {
       setError("Failed to load your rooms. Please try again.");
     } finally {
@@ -44,9 +42,38 @@ export default function MyRooms() {
 
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this room?")) return;
-    const { error } = await supabase.from("rooms").delete().eq("id", id);
-    if (!error) fetchMyRooms(userId);
+    
+    try {
+      const response = await fetch(config.getUrl(`${config.endpoints.rooms.delete}?id=${id}`), {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        fetchMyRooms(); // Refresh the list
+      } else {
+        const data = await response.json();
+        alert(data.error || "Failed to delete room");
+      }
+    } catch (error) {
+      alert("Network error. Please try again.");
+    }
   };
+
+  if (authLoading) {
+    return (
+      <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-gray-900 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors">
+        <div className="flex-1 flex items-center justify-center p-4">
+          <div className="text-white text-xl">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    navigate("/signup-login");
+    return null;
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-gray-900 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors">

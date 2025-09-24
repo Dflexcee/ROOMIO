@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { supabase } from "../../supabase";
 import { useNavigate, useLocation } from "react-router-dom";
+import { loginWithEmail, getCurrentUser } from "../../services/authService";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -14,9 +14,8 @@ export default function Login() {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const { data } = await supabase.auth.getSession();
-        if (data.session) {
-          // If we have a return path, use it, otherwise go to dashboard
+        const { user } = await getCurrentUser();
+        if (user) {
           const returnTo = location.state?.from || "/admin/dashboard";
           navigate(returnTo, { replace: true });
         }
@@ -34,16 +33,10 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     setError("");
-    
     try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      
+      const { user, error: signInError } = await loginWithEmail(email, password);
       if (signInError) throw signInError;
-      
-      // If we have a return path, use it, otherwise go to dashboard
+      if (!user) throw new Error("Login failed");
       const returnTo = location.state?.from || "/admin/dashboard";
       navigate(returnTo, { replace: true });
     } catch (error) {

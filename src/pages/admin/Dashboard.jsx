@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { supabase } from "../../supabase";
 import PageWrapper from "../../components/common/PageWrapper";
 import { Bar } from "react-chartjs-2";
 import {
@@ -11,6 +10,7 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
+import config from "../../config/api.js";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
@@ -34,34 +34,15 @@ export default function Dashboard() {
   }, []);
 
   const fetchDashboardStats = async () => {
-    const [userRes, roomRes, ticketRes, broadcastRes] = await Promise.all([
-      supabase.from("users").select("*"),
-      supabase.from("rooms").select("*"),
-      supabase.from("support_tickets").select("*"),
-      supabase.from("broadcasts").select("*").order("sent_at", { ascending: false }).limit(1),
-    ]);
-
-    const now = new Date();
-    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-
-    const users = userRes.data || [];
-    const rooms = roomRes.data || [];
-    const tickets = ticketRes.data || [];
-    const lastBroadcast = broadcastRes.data?.[0] || null;
-
-    setStats({
-      total_users: users.length,
-      verified_users: users.filter((u) => u.verification_status === "verified").length,
-      new_users: users.filter((u) => u.created_at > weekAgo).length,
-      total_rooms: rooms.length,
-      pending_verifications: users.filter((u) => u.verification_status === "pending").length,
-      open_tickets: tickets.filter((t) => t.status === "open").length,
-      flagged_rooms: rooms.filter((r) => r.status === "flagged").length,
-      last_broadcast: lastBroadcast,
-      tenants: users.filter((u) => u.account_type === "tenant").length,
-      landlords: users.filter((u) => u.account_type === "landlord").length,
-      agents: users.filter((u) => u.account_type === "agent").length,
-    });
+    try {
+      const response = await fetch(config.getUrl(config.endpoints.admin.stats), {
+        credentials: 'include'
+      });
+      const data = await response.json();
+      setStats(data);
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error);
+    }
   };
 
   // Chart data
@@ -140,4 +121,4 @@ function Widget({ label, value }) {
       <h3 className="text-3xl font-extrabold text-blue-900">{value}</h3>
     </div>
   );
-} 
+}

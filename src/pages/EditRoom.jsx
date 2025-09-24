@@ -50,7 +50,7 @@ export default function EditRoom() {
     setNewImages([...newImages, ...Array.from(e.target.files)]);
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => { 
     e.preventDefault();
     setError("");
     setSuccess("");

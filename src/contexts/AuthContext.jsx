@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState, createContext } from "react";
-import { supabase } from "../supabase";
+import { getCurrentUser } from "../services/authService";
 
 const AuthContext = createContext();
 
@@ -8,23 +8,26 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial user
-    supabase.auth.getUser().then(({ data, error }) => {
-      setUser(data?.user ?? null);
-      setLoading(false);
-    });
-
-    // Listen for auth changes (Supabase v2+)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-    return () => {
-      subscription?.unsubscribe?.();
-    };
+    // Get initial user from PHP session
+    getCurrentUser()
+      .then(({ user, error }) => {
+        if (error) {
+          console.error('Auth error:', error);
+          setUser(null);
+        } else {
+          setUser(user ?? null);
+        }
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error('Auth error:', error);
+        setUser(null);
+        setLoading(false);
+      });
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading }}>
+    <AuthContext.Provider value={{ user, loading, setUser }}>
       {children}
     </AuthContext.Provider>
   );

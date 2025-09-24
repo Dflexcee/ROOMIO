@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { supabase } from "../../supabase";
 import PageWrapper from "../../components/common/PageWrapper";
+import config from "../../config/api.js";
 
 const FEATURE_OPTIONS = [
   { key: "VIEW_ROOMMATE_PROFILE", label: "View roommate profile" },
@@ -24,16 +24,23 @@ export default function Payments() {
 
   useEffect(() => {
     fetchSettings();
-    // eslint-disable-next-line
   }, [refresh]);
 
   const fetchSettings = async () => {
     setLoading(true);
     setError(null);
     try {
-      const { data, error } = await supabase.from("payment_settings").select("*").order("feature_name");
-      if (error) throw error;
-      setFeatures(data || []);
+      const response = await fetch(config.getUrl(config.endpoints.payments.settings), {
+        credentials: 'include'
+      });
+      const data = await response.json();
+      
+      if (response.ok) {
+        setFeatures(data.settings || []);
+      } else {
+        setError("Failed to fetch premium features. Please try again.");
+        setFeatures([]);
+      }
     } catch (err) {
       setError("Failed to fetch premium features. Please try again.");
       setFeatures([]);
@@ -45,21 +52,33 @@ export default function Payments() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+    
+    if (!form.feature_name.trim()) {
+      setError("Feature is required.");
+      return;
+    }
+    
     try {
-      if (!form.feature_name.trim()) {
-        setError("Feature is required.");
-        return;
-      }
-      const { error } = await supabase.from("payment_settings").insert([form]);
-      if (error) throw error;
-      setForm({
-        feature_name: "",
-        unlock_price: 0,
-        is_locked: true,
-        duration_type: "days",
-        duration_value: 7,
+      const response = await fetch(config.getUrl('/payment-settings/create.php'), {
+        method: 'POST',
+        headers: config.getAuthHeaders(),
+        credentials: 'include',
+        body: JSON.stringify(form)
       });
-      setRefresh(!refresh);
+      
+      if (response.ok) {
+        setForm({
+          feature_name: "",
+          unlock_price: 0,
+          is_locked: true,
+          duration_type: "days",
+          duration_value: 7,
+        });
+        setRefresh(!refresh);
+      } else {
+        const data = await response.json();
+        setError(data.error || "Failed to add feature. Please try again.");
+      }
     } catch (err) {
       setError("Failed to add feature. Please try again.");
     }
@@ -68,9 +87,22 @@ export default function Payments() {
   const toggleLock = async (id, current) => {
     setError(null);
     try {
-      const { error } = await supabase.from("payment_settings").update({ is_locked: !current }).eq("id", id);
-      if (error) throw error;
-      setRefresh(!refresh);
+      const response = await fetch(config.getUrl('/payment-settings/toggle-lock.php'), {
+        method: 'POST',
+        headers: config.getAuthHeaders(),
+        credentials: 'include',
+        body: JSON.stringify({
+          id: id,
+          is_locked: !current
+        })
+      });
+      
+      if (response.ok) {
+        setRefresh(!refresh);
+      } else {
+        const data = await response.json();
+        setError(data.error || "Failed to update lock status.");
+      }
     } catch (err) {
       setError("Failed to update lock status.");
     }
@@ -79,9 +111,23 @@ export default function Payments() {
   const updateField = async (id, field, value) => {
     setError(null);
     try {
-      const { error } = await supabase.from("payment_settings").update({ [field]: value }).eq("id", id);
-      if (error) throw error;
-      setRefresh(!refresh);
+      const response = await fetch(config.getUrl('/payment-settings/update.php'), {
+        method: 'POST',
+        headers: config.getAuthHeaders(),
+        credentials: 'include',
+        body: JSON.stringify({
+          id: id,
+          field: field,
+          value: value
+        })
+      });
+      
+      if (response.ok) {
+        setRefresh(!refresh);
+      } else {
+        const data = await response.json();
+        setError(data.error || "Failed to update feature.");
+      }
     } catch (err) {
       setError("Failed to update feature.");
     }

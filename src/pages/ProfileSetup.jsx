@@ -1,9 +1,10 @@
 import React from "react";
 import { useEffect, useState } from "react";
-import { supabase } from "../supabase";
+import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import DarkModeToggle from "../components/common/DarkModeToggle";
 import Navbar from "../components/common/Navbar";
+import config from "../config/api.js";
 
 export default function ProfileSetup() {
   const [form, setForm] = useState({
@@ -16,81 +17,103 @@ export default function ProfileSetup() {
     religion: "",
     lifestyle: "",
     about_me: "",
+    phone: "",
   });
   const [profilePic, setProfilePic] = useState(null);
-  const [userId, setUserId] = useState(null);
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [currentAvatarUrl, setCurrentAvatarUrl] = useState("");
 
   useEffect(() => {
-    const fetchUserProfile = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUserId(user.id);
-        
-        // Fetch user profile data
-        const { data: profile, error: profileError } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-
-        if (profile && !profileError) {
-          setForm({
-            full_name: profile.full_name || "",
-            age: profile.age || "",
-            gender: profile.gender || "male",
-            university: profile.university || "",
-            department: profile.department || "",
-            budget_range: profile.budget_range || "",
-            religion: profile.religion || "",
-            lifestyle: profile.lifestyle || "",
-            about_me: profile.about_me || "",
-          });
-          setCurrentAvatarUrl(profile.avatar_url || "");
-        }
-      }
-    };
-
-    fetchUserProfile();
-  }, []);
+    if (user) {
+      // Pre-fill form with existing user data
+      setForm({
+        full_name: user.full_name || "",
+        age: user.age || "",
+        gender: user.gender || "male",
+        university: user.university || "",
+        department: user.department || "",
+        budget_range: user.budget_range || "",
+        religion: user.religion || "",
+        lifestyle: user.lifestyle || "",
+        about_me: user.about_me || "",
+        phone: user.phone || "",
+      });
+      setCurrentAvatarUrl(user.avatar_url || "");
+    }
+  }, [user]);
 
   const handleSubmit = async () => {
     setError("");
-    setLoading(true);
+    setSaving(true);
     let avatarUrl = currentAvatarUrl;
 
-    if (profilePic) {
-      const fileName = `profile-${userId}-${Date.now()}`;
-      const { error: uploadError } = await supabase.storage
-        .from("avatars")
-        .upload(fileName, profilePic, { upsert: true });
+    try {
+      // Upload profile picture if selected
+      if (profilePic) {
+        const formData = new FormData();
+        formData.append("avatar", profilePic);
+        
+        const uploadResponse = await fetch(config.getUrl(config.endpoints.upload.avatar), {
+          method: "POST",
+          credentials: "include",
+          body: formData
+        });
+        
+        const uploadData = await uploadResponse.json();
+        
+        if (!uploadResponse.ok) {
+          setError(uploadData.error || "Failed to upload profile picture.");
+          setSaving(false);
+          return;
+        }
+        
+        avatarUrl = uploadData.avatar_url;
+      }
 
-      if (uploadError) {
-        setError("Failed to upload profile picture.");
-        setLoading(false);
+      // Update profile data
+      const updateResponse = await fetch(config.getUrl(config.endpoints.profile.update), {
+        method: "POST",
+        headers: config.getAuthHeaders(),
+        credentials: "include",
+        body: JSON.stringify({
+          ...form,
+          avatar_url: avatarUrl
+        })
+      });
+
+      const updateData = await updateResponse.json();
+      
+      if (!updateResponse.ok) {
+        setError(updateData.error || "Failed to save profile.");
+        setSaving(false);
         return;
       }
-      const { data } = supabase.storage.from("avatars").getPublicUrl(fileName);
-      avatarUrl = data.publicUrl;
-    }
 
-    const { error } = await supabase.from("users").upsert({
-      id: userId,
-      ...form,
-      avatar_url: avatarUrl,
-      updated_at: new Date().toISOString(),
-    });
-
-    setLoading(false);
-    if (!error) {
+      // Success - redirect to dashboard
       navigate("/dashboard");
-    } else {
-      setError("Failed to save profile. Please try again.");
+    } catch (error) {
+      setError("Network error. Please try again.");
+      setSaving(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-gray-900 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors">
+        <div className="flex-1 flex items-center justify-center p-4">
+          <div className="text-white text-xl">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    navigate("/signup-login");
+    return null;
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-gray-900 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors">
@@ -174,6 +197,13 @@ export default function ProfileSetup() {
               <option value="party">Party</option>
               <option value="mixed">Mixed</option>
             </select>
+            <input
+              type="text"
+              placeholder="Phone Number"
+              value={form.phone}
+              onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              className="border p-2 rounded bg-gray-50 dark:bg-gray-700 dark:text-white"
+            />
           </div>
 
           <textarea
@@ -191,13 +221,13 @@ export default function ProfileSetup() {
 
           <button
             onClick={handleSubmit}
-            disabled={loading}
+            disabled={saving}
             className="mt-6 bg-gradient-to-r from-pink-500 to-yellow-500 dark:from-blue-700 dark:to-purple-700 text-white px-8 py-3 rounded-full shadow-lg hover:scale-105 hover:from-pink-600 hover:to-yellow-600 dark:hover:from-blue-800 dark:hover:to-purple-800 transition-all text-lg font-semibold w-full mb-2 disabled:opacity-60"
           >
-            {loading ? "Saving..." : "Update Profile"}
+            {saving ? "Saving..." : "Update Profile"}
           </button>
         </div>
       </div>
     </div>
   );
-} 
+}

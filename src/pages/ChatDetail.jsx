@@ -1,16 +1,16 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
-import { supabase } from "../supabase";
+import { useAuth } from "../contexts/AuthContext";
 import PageWrapper from "../components/common/PageWrapper";
 import Navbar from "../components/common/Navbar";
 import DarkModeToggle from "../components/common/DarkModeToggle";
 import { Picker } from "emoji-mart";
-import { createClient } from '@supabase/supabase-js';
 import { FaPaperclip, FaFilePdf, FaFileWord, FaFileExcel, FaFileArchive, FaFileAlt, FaFileAudio, FaFileVideo, FaFileImage } from 'react-icons/fa';
+import config from "../config/api.js";
 
 export default function ChatDetail() {
   const { userId: targetUserId } = useParams();
-  const [userId, setUserId] = useState(null);
+  const { user, loading: authLoading } = useAuth();
   const [targetUser, setTargetUser] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
@@ -25,24 +25,18 @@ export default function ChatDetail() {
   const [uploadProgress, setUploadProgress] = useState(0);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data?.user?.id) setUserId(data.user.id);
-    });
-  }, []);
-
-  useEffect(() => {
     if (targetUserId) {
       fetchUser(targetUserId);
     }
   }, [targetUserId]);
 
   useEffect(() => {
-    if (userId && targetUserId) {
+    if (user && targetUserId) {
       fetchMessages();
       const interval = setInterval(fetchMessages, 3000); // Simple polling
       return () => clearInterval(interval);
     }
-  }, [userId, targetUserId]);
+  }, [user, targetUserId]);
 
   useEffect(() => {
     // Auto-scroll to bottom on new message
@@ -51,65 +45,69 @@ export default function ChatDetail() {
     }
   }, [messages]);
 
-  useEffect(() => {
-    if (userId && targetUserId) {
-      // Listen for typing indicator (if table exists)
-      const channel = supabase
-        .channel('typing-indicator')
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'typing_indicators' }, (payload) => {
-          if (payload.new.user_id === targetUserId && payload.new.chat_partner_id === userId) {
-            setOtherTyping(payload.new.is_typing);
-          }
-        })
-        .subscribe();
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    }
-  }, [userId, targetUserId]);
-
   const fetchUser = async (id) => {
-    const { data } = await supabase.from("users").select("*").eq("id", id).single();
-    setTargetUser(data);
+    try {
+      const response = await fetch(config.getUrl(`/users/get.php?id=${id}`), {
+        credentials: 'include'
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setTargetUser(data.user);
+      }
+    } catch (error) {
+      console.error('Error fetching user:', error);
+    }
   };
 
   const fetchMessages = async () => {
+    if (!user || !targetUserId) return;
+    
     setLoading(true);
-    const { data } = await supabase
-      .from("messages")
-      .select("*")
-      .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
-      .or(`sender_id.eq.${targetUserId},receiver_id.eq.${targetUserId}`)
-      .order("sent_at", { ascending: true });
-    const filtered = data.filter(
-      (m) =>
-        (m.sender_id === userId && m.receiver_id === targetUserId) ||
-        (m.sender_id === targetUserId && m.receiver_id === userId)
-    );
-    setMessages(filtered);
-    setLoading(false);
+    try {
+      const response = await fetch(config.getUrl(`/messages/list.php?sender_id=${user.id}&receiver_id=${targetUserId}`), {
+        credentials: 'include'
+      });
+      const data = await response.json();
+      
+      if (response.ok) {
+        setMessages(data.messages || []);
+      }
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleTyping = (e) => {
     setNewMessage(e.target.value);
     setTyping(true);
     if (typingTimeout.current) clearTimeout(typingTimeout.current);
-    // Update typing indicator in DB
-    supabase.from('typing_indicators').upsert({
-      user_id: userId,
-      chat_partner_id: targetUserId,
-      is_typing: true,
-      last_typed_at: new Date().toISOString(),
-    });
+    
+    // Update typing indicator
+    updateTypingIndicator(true);
+    
     typingTimeout.current = setTimeout(() => {
       setTyping(false);
-      supabase.from('typing_indicators').upsert({
-        user_id: userId,
-        chat_partner_id: targetUserId,
-        is_typing: false,
-        last_typed_at: new Date().toISOString(),
-      });
+      updateTypingIndicator(false);
     }, 2000);
+  };
+
+  const updateTypingIndicator = async (isTyping) => {
+    try {
+      await fetch(config.getUrl('/typing-indicators/update.php'), {
+        method: 'POST',
+        headers: config.getAuthHeaders(),
+        credentials: 'include',
+        body: JSON.stringify({
+          user_id: user.id,
+          target_user_id: targetUserId,
+          is_typing: isTyping
+        })
+      });
+    } catch (error) {
+      console.error('Error updating typing indicator:', error);
+    }
   };
 
   const getFileIcon = (type) => {
@@ -131,67 +129,88 @@ export default function ChatDetail() {
     setUploading(true);
     setUploadError("");
     setUploadProgress(0);
+    
     try {
-      const filePath = `${userId}/${Date.now()}_${file.name}`;
-      // Use fetch to track progress
-      const upload = await supabase.storage.from('chat_files').upload(filePath, file, {
-        upsert: false,
-        onUploadProgress: (event) => {
-          if (event.lengthComputable) {
-            setUploadProgress(Math.round((event.loaded / event.total) * 100));
-          }
-        }
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('sender_id', user.id);
+      formData.append('receiver_id', targetUserId);
+      
+      const uploadResponse = await fetch(config.getUrl('/upload/chat-file.php'), {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
       });
-      if (upload.error) throw upload.error;
-      const { data: urlData } = supabase.storage.from('chat_files').getPublicUrl(filePath);
-      await supabase.from('messages').insert([
-        {
-          sender_id: userId,
-          receiver_id: targetUserId,
-          message: '',
-          file_url: urlData.publicUrl,
-          file_type: file.type,
-          file_name: file.name,
-          sent_at: new Date().toISOString(),
-        },
-      ]);
-      fetchMessages();
-    } catch (err) {
-      setUploadError("Failed to upload file. Please try again.");
+      
+      const uploadData = await uploadResponse.json();
+      
+      if (uploadResponse.ok) {
+        // Send message with file
+        await sendMessage(uploadData.file_url, file.name, file.type);
+      } else {
+        setUploadError(uploadData.error || "Failed to upload file");
+      }
+    } catch (error) {
+      setUploadError("Network error. Please try again.");
     } finally {
       setUploading(false);
       setUploadProgress(0);
     }
   };
 
-  const sendMessage = async () => {
-    if (!newMessage.trim()) return;
-    await supabase.from("messages").insert([
-      {
-        sender_id: userId,
-        receiver_id: targetUserId,
-        message: newMessage,
-        sent_at: new Date().toISOString(),
-      },
-    ]);
-    setNewMessage("");
-    setShowEmoji(false);
-    fetchMessages();
-    // Set typing to false
-    setTyping(false);
-    supabase.from('typing_indicators').upsert({
-      user_id: userId,
-      chat_partner_id: targetUserId,
-      is_typing: false,
-      last_typed_at: new Date().toISOString(),
-    });
+  const sendMessage = async (content, fileName = null, fileType = null) => {
+    if (!content.trim() && !fileName) return;
+    
+    try {
+      const response = await fetch(config.getUrl('/messages/send.php'), {
+        method: 'POST',
+        headers: config.getAuthHeaders(),
+        credentials: 'include',
+        body: JSON.stringify({
+          sender_id: user.id,
+          receiver_id: targetUserId,
+          content: content,
+          file_name: fileName,
+          file_type: fileType
+        })
+      });
+      
+      if (response.ok) {
+        setNewMessage("");
+        fetchMessages(); // Refresh messages
+      } else {
+        const data = await response.json();
+        alert(data.error || "Failed to send message");
+      }
+    } catch (error) {
+      alert("Network error. Please try again.");
+    }
   };
 
-  const addEmoji = (emoji) => {
-    setNewMessage((prev) => prev + emoji.native);
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    sendMessage(newMessage);
   };
 
-  if (!targetUser) return <div className="p-6">Loading chat...</div>;
+  if (authLoading) {
+    return (
+      <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-gray-900 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors">
+        <div className="flex-1 flex items-center justify-center p-4">
+          <div className="text-white text-xl">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-gray-900 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors">
+        <div className="flex-1 flex items-center justify-center p-4">
+          <div className="text-white text-xl">Please log in to access chat</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-gray-900 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors">
@@ -200,107 +219,139 @@ export default function ChatDetail() {
       </div>
       <Navbar />
       <PageWrapper>
-        <div className="max-w-2xl mx-auto py-8 px-4">
-          <h2 className="text-2xl md:text-3xl font-extrabold mb-6 text-blue-700 dark:text-pink-400 text-center">💬 Chat with {targetUser.full_name}</h2>
-          <div className="bg-white dark:bg-gray-900 p-4 rounded-3xl shadow-2xl h-[60vh] overflow-y-auto space-y-3 mb-4 border border-blue-100 dark:border-gray-800 flex flex-col">
-            {loading ? (
-              <div className="text-center text-gray-500">Loading messages...</div>
-            ) : messages.length === 0 ? (
-              <div className="text-center text-gray-400">No messages yet. Say hi! 👋</div>
-            ) : (
-              messages.map((msg, idx) => (
-                <div
-                  key={msg.id || idx}
-                  className={`flex items-end gap-2 ${msg.sender_id === userId ? "justify-end" : "justify-start"} animate-fade-in`}
-                >
-                  {msg.sender_id !== userId && (
-                    <img
-                      src={targetUser.avatar_url || "/default-avatar.png"}
-                      alt={targetUser.full_name}
-                      className="w-8 h-8 rounded-full object-cover border-2 border-blue-200 dark:border-pink-400"
-                    />
-                  )}
+        <div className="max-w-4xl mx-auto py-8 px-4">
+          <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl border border-blue-100 dark:border-gray-800 h-[600px] flex flex-col">
+            {/* Chat Header */}
+            <div className="bg-blue-600 dark:bg-blue-800 text-white p-4 rounded-t-3xl flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
+                  <span className="text-blue-600 font-bold text-lg">
+                    {targetUser?.full_name?.charAt(0) || 'U'}
+                  </span>
+                </div>
+                <div>
+                  <h3 className="font-semibold">{targetUser?.full_name || 'User'}</h3>
+                  <p className="text-sm opacity-75">Online</p>
+                </div>
+              </div>
+              {otherTyping && (
+                <div className="text-sm opacity-75">typing...</div>
+              )}
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {loading ? (
+                <div className="text-center text-gray-500">Loading messages...</div>
+              ) : messages.length === 0 ? (
+                <div className="text-center text-gray-500">No messages yet. Start a conversation!</div>
+              ) : (
+                messages.map((message) => (
                   <div
-                    className={`max-w-xs md:max-w-md p-3 rounded-2xl shadow text-base break-words ${
-                      msg.sender_id === userId
-                        ? "bg-gradient-to-r from-pink-500 to-yellow-500 text-white ml-auto"
-                        : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
-                    }`}
+                    key={message.id}
+                    className={`flex ${message.sender_id === user.id ? 'justify-end' : 'justify-start'}`}
                   >
-                    {msg.file_url ? (
-                      msg.file_type && msg.file_type.startsWith('image') ? (
-                        <img src={msg.file_url} alt={msg.file_name} className="max-w-[200px] max-h-[200px] rounded mb-2" />
-                      ) : (
-                        <div className="flex items-center gap-2 mb-2">
-                          {getFileIcon(msg.file_type)}
-                          <a href={msg.file_url} target="_blank" rel="noopener noreferrer" className="underline text-blue-600 dark:text-pink-400" title={msg.file_name}>
-                            {msg.file_name || 'File'}
-                          </a>
+                    <div
+                      className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                        message.sender_id === user.id
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white'
+                      }`}
+                    >
+                      {message.file_name ? (
+                        <div className="flex items-center space-x-2">
+                          {getFileIcon(message.file_type)}
+                          <div>
+                            <p className="font-medium">{message.file_name}</p>
+                            <p className="text-sm opacity-75">{message.content}</p>
+                          </div>
                         </div>
-                      )
-                    ) : null}
-                    <span>{msg.message}</span>
-                    <div className="text-xs text-gray-300 dark:text-gray-400 mt-1 text-right">
-                      {new Date(msg.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      ) : (
+                        <p>{message.content}</p>
+                      )}
+                      <p className="text-xs opacity-75 mt-1">
+                        {new Date(message.created_at).toLocaleTimeString()}
+                      </p>
                     </div>
                   </div>
-                  {msg.sender_id === userId && (
-                    <img
-                      src={"/default-avatar.png"}
-                      alt="You"
-                      className="w-8 h-8 rounded-full object-cover border-2 border-blue-200 dark:border-pink-400"
-                    />
-                  )}
+                ))
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Message Input */}
+            <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+              {uploading && (
+                <div className="mb-2">
+                  <div className="bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${uploadProgress}%` }}
+                    ></div>
+                  </div>
+                  <p className="text-sm text-gray-500">Uploading... {uploadProgress}%</p>
                 </div>
-              ))
-            )}
-            {otherTyping && (
-              <div className="text-xs text-gray-500 italic mt-2">{targetUser.full_name} is typing...</div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
-          <div className="flex gap-2 items-end mt-2">
-            <div className="relative flex-1">
-              <input
-                type="text"
-                placeholder="Type a message..."
-                value={newMessage}
-                onChange={handleTyping}
-                className="border p-3 rounded-full w-full bg-gray-50 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-pink-400"
-                onKeyDown={e => { if (e.key === 'Enter') sendMessage(); }}
-                disabled={uploading}
-              />
-              <button
-                type="button"
-                className="absolute right-12 top-1/2 -translate-y-1/2 text-xl"
-                onClick={() => setShowEmoji((v) => !v)}
-                title="Add emoji"
-                disabled={uploading}
-              >
-                😊
-              </button>
-              <label htmlFor="file-upload" className="absolute left-0 top-1/2 -translate-y-1/2 cursor-pointer text-2xl text-gray-400 hover:text-pink-400 transition" style={{ zIndex: 2 }}>
-                <FaPaperclip />
+              )}
+              
+              {uploadError && (
+                <div className="mb-2 text-red-600 text-sm">{uploadError}</div>
+              )}
+
+              <form onSubmit={handleSubmit} className="flex items-center space-x-2">
                 <input
-                  id="file-upload"
                   type="file"
-                  accept="image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/zip,application/x-rar-compressed,application/x-7z-compressed,application/x-tar,application/x-gzip,application/octet-stream,audio/*,video/*"
+                  id="file-upload"
                   className="hidden"
                   onChange={handleFileChange}
                   disabled={uploading}
-                  title="Send file or image"
                 />
-              </label>
-              {uploading && <div className="absolute left-10 top-1/2 -translate-y-1/2 text-xs text-blue-500">Uploading... {uploadProgress}%</div>}
-              {uploadError && <div className="absolute left-10 top-1/2 -translate-y-1/2 text-xs text-red-500">{uploadError}</div>}
+                <label
+                  htmlFor="file-upload"
+                  className="p-2 text-gray-500 hover:text-blue-600 cursor-pointer"
+                  title="Attach file"
+                >
+                  <FaPaperclip />
+                </label>
+                
+                <div className="flex-1 relative">
+                  <input
+                    type="text"
+                    value={newMessage}
+                    onChange={handleTyping}
+                    placeholder="Type a message..."
+                    className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    disabled={uploading}
+                  />
+                  {showEmoji && (
+                    <div className="absolute bottom-full mb-2">
+                      <Picker
+                        onSelect={(emoji) => {
+                          setNewMessage(prev => prev + emoji.native);
+                          setShowEmoji(false);
+                        }}
+                        title="Pick an emoji"
+                      />
+                    </div>
+                  )}
+                </div>
+                
+                <button
+                  type="button"
+                  onClick={() => setShowEmoji(!showEmoji)}
+                  className="p-2 text-gray-500 hover:text-blue-600"
+                >
+                  😊
+                </button>
+                
+                <button
+                  type="submit"
+                  disabled={uploading || !newMessage.trim()}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                >
+                  Send
+                </button>
+              </form>
             </div>
-            <button
-              onClick={sendMessage}
-              className="bg-gradient-to-r from-pink-500 to-yellow-500 text-white px-6 py-2 rounded-full shadow-lg hover:scale-105 transition-all text-lg font-semibold"
-              disabled={uploading || !newMessage.trim()}
-            >
-              Send
-            </button>
           </div>
         </div>
       </PageWrapper>

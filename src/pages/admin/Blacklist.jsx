@@ -1,58 +1,94 @@
 import React, { useEffect, useState } from "react";
-import { supabase } from "../../supabase";
 import PageWrapper from "../../components/common/PageWrapper";
+import config from "../../config/api.js";
 
 export default function Blacklist() {
   const [bannedUsers, setBannedUsers] = useState([]);
   const [logs, setLogs] = useState([]);
   const [emailToBan, setEmailToBan] = useState("");
   const [refresh, setRefresh] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchData();
   }, [refresh]);
 
   const fetchData = async () => {
-    const { data: users } = await supabase
-      .from("users")
-      .select("*")
-      .eq("status", "banned");
-
-    const { data: logsData } = await supabase
-      .from("system_logs")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(50);
-
-    setBannedUsers(users || []);
-    setLogs(logsData || []);
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Fetch banned users
+      const usersResponse = await fetch(config.getUrl('/admin/banned-users.php'), {
+        credentials: 'include'
+      });
+      const usersData = await usersResponse.json();
+      
+      // Fetch system logs
+      const logsResponse = await fetch(config.getUrl('/admin/system-logs.php'), {
+        credentials: 'include'
+      });
+      const logsData = await logsResponse.json();
+      
+      if (usersResponse.ok && logsResponse.ok) {
+        setBannedUsers(usersData.users || []);
+        setLogs(logsData.logs || []);
+      } else {
+        setError("Failed to fetch data");
+      }
+    } catch (err) {
+      setError("Failed to fetch data");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleManualBan = async () => {
     if (!emailToBan) return;
-    const { data, error } = await supabase
-      .from("users")
-      .update({ status: "banned" })
-      .eq("email", emailToBan);
-
-    if (!error) {
-      // Log it
-      await supabase.from("system_logs").insert([
-        {
-          action: "ban",
-          description: `Manually banned ${emailToBan}`,
-          actor: "admin@campusmate.com",
-        },
-      ]);
-      alert("User banned successfully.");
-      setEmailToBan("");
-      setRefresh(!refresh);
+    
+    try {
+      const response = await fetch(config.getUrl('/admin/ban-user.php'), {
+        method: 'POST',
+        headers: config.getAuthHeaders(),
+        credentials: 'include',
+        body: JSON.stringify({
+          email: emailToBan,
+          reason: 'Manual ban by admin'
+        })
+      });
+      
+      if (response.ok) {
+        alert("User banned successfully.");
+        setEmailToBan("");
+        setRefresh(!refresh);
+      } else {
+        const data = await response.json();
+        alert(data.error || "Failed to ban user");
+      }
+    } catch (err) {
+      alert("Failed to ban user");
     }
   };
+
+  if (loading) {
+    return (
+      <PageWrapper>
+        <h2 className="text-2xl font-bold mb-4"> Blacklist & Logs</h2>
+        <div className="text-center py-8 text-gray-500">Loading data...</div>
+      </PageWrapper>
+    );
+  }
 
   return (
     <PageWrapper>
       <h2 className="text-2xl font-bold mb-4">🚨 Blacklist & Logs</h2>
+
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          {error}
+        </div>
+      )}
 
       <div className="bg-white p-4 rounded shadow mb-6 max-w-xl">
         <h3 className="font-semibold mb-2">➕ Manually Ban a User</h3>

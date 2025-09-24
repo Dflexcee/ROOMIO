@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { supabase } from "../../supabase";
 import PageWrapper from "../../components/common/PageWrapper";
+import config from "../../config/api.js";
 
 export default function AgentVerification() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchRequests();
@@ -12,33 +13,86 @@ export default function AgentVerification() {
 
   const fetchRequests = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("users")
-      .select("id, full_name, email, account_type, verification_status, verification_id_url, verification_submitted_at")
-      .in("account_type", ["agent", "landlord"])
-      .eq("verification_status", "pending")
-      .order("verification_submitted_at", { ascending: false });
-    setRequests(data || []);
-    setLoading(false);
+    setError(null);
+    
+    try {
+      const response = await fetch(config.getUrl('/admin/verification-requests.php'), {
+        credentials: 'include'
+      });
+      const data = await response.json();
+      
+      if (response.ok) {
+        setRequests(data.requests || []);
+      } else {
+        setError("Failed to fetch verification requests");
+      }
+    } catch (err) {
+      setError("Failed to fetch verification requests");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleApprove = async (id) => {
-    await supabase.from("users").update({ verification_status: "verified" }).eq("id", id);
-    fetchRequests();
+    try {
+      const response = await fetch(config.getUrl('/admin/verify-user.php'), {
+        method: 'POST',
+        headers: config.getAuthHeaders(),
+        credentials: 'include',
+        body: JSON.stringify({
+          user_id: id,
+          status: 'verified'
+        })
+      });
+      
+      if (response.ok) {
+        fetchRequests();
+      } else {
+        const data = await response.json();
+        setError(data.error || "Failed to approve user");
+      }
+    } catch (err) {
+      setError("Failed to approve user");
+    }
   };
 
   const handleReject = async (id) => {
-    await supabase.from("users").update({ verification_status: "rejected" }).eq("id", id);
-    fetchRequests();
+    try {
+      const response = await fetch(config.getUrl('/admin/verify-user.php'), {
+        method: 'POST',
+        headers: config.getAuthHeaders(),
+        credentials: 'include',
+        body: JSON.stringify({
+          user_id: id,
+          status: 'rejected'
+        })
+      });
+      
+      if (response.ok) {
+        fetchRequests();
+      } else {
+        const data = await response.json();
+        setError(data.error || "Failed to reject user");
+      }
+    } catch (err) {
+      setError("Failed to reject user");
+    }
   };
 
   return (
     <PageWrapper>
       <h2 className="text-2xl font-bold mb-6">✅ Agent & Landlord Verifications</h2>
+      
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          {error}
+        </div>
+      )}
+      
       {loading ? (
-        <div>Loading...</div>
+        <div className="text-center py-8 text-gray-500">Loading verification requests...</div>
       ) : requests.length === 0 ? (
-        <div className="text-gray-500">No pending verifications.</div>
+        <div className="text-center py-8 text-gray-500">No pending verifications.</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {requests.map((user) => (

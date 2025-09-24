@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { supabase } from "../../supabase";
+import { logout } from "../../services/authService";
 
 const navLinks = [
   { to: "/dashboard", label: "Dashboard" },
@@ -19,8 +19,14 @@ export default function Navbar() {
   const navigate = useNavigate();
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/onboarding");
+    try {
+      await logout();
+      navigate("/onboarding");
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Still navigate even if logout fails
+      navigate("/onboarding");
+    }
   };
 
   return (

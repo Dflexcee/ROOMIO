@@ -1,78 +1,122 @@
 import React, { useEffect, useState } from "react";
-import { supabase } from "../../supabase";
 import PageWrapper from "../../components/common/PageWrapper";
+import config from "../../config/api.js";
 
 export default function AdsManager() {
   const [ads, setAds] = useState([]);
   const [form, setForm] = useState({ title: "", target_link: "" });
   const [imageFile, setImageFile] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchAds();
   }, []);
 
   const fetchAds = async () => {
-    const { data, error } = await supabase
-      .from("ads")
-      .select("*")
-      .order("posted_on", { ascending: false });
-
-    if (!error) setAds(data);
+    try {
+      const response = await fetch(config.getUrl('/admin/ads.php'), {
+        credentials: 'include'
+      });
+      const data = await response.json();
+      
+      if (response.ok) {
+        setAds(data.ads || []);
+      } else {
+        setError("Failed to fetch ads");
+      }
+    } catch (err) {
+      setError("Failed to fetch ads");
+    }
   };
 
   const handleUpload = async () => {
     if (!imageFile) return alert("Please select an image.");
     if (!form.title || !form.target_link) return alert("All fields are required.");
+    
     setLoading(true);
+    setError(null);
 
-    const filename = `${Date.now()}-${imageFile.name}`;
-    const { error: uploadError } = await supabase.storage
-      .from("ads")
-      .upload(filename, imageFile);
+    try {
+      // First upload the image
+      const formData = new FormData();
+      formData.append('image', imageFile);
+      
+      const uploadResponse = await fetch(config.getUrl('/upload/ad-image.php'), {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+      });
+      
+      const uploadData = await uploadResponse.json();
+      
+      if (!uploadResponse.ok) {
+        throw new Error(uploadData.error || "Failed to upload image");
+      }
 
-    if (uploadError) {
-      alert("Upload failed.");
-      console.error(uploadError);
+      // Then create the ad record
+      const createResponse = await fetch(config.getUrl('/admin/ads.php'), {
+        method: 'POST',
+        headers: config.getAuthHeaders(),
+        credentials: 'include',
+        body: JSON.stringify({
+          title: form.title,
+          image_url: uploadData.image_url,
+          target_link: form.target_link,
+          active: true
+        })
+      });
+      
+      const createData = await createResponse.json();
+      
+      if (createResponse.ok) {
+        alert("Ad uploaded successfully!");
+        setForm({ title: "", target_link: "" });
+        setImageFile(null);
+        fetchAds();
+      } else {
+        throw new Error(createData.error || "Failed to create ad");
+      }
+    } catch (err) {
+      setError(err.message);
+      alert(err.message);
+    } finally {
       setLoading(false);
-      return;
     }
-
-    const { data: publicUrlData } = supabase.storage
-      .from("ads")
-      .getPublicUrl(filename);
-
-    const { error: dbError } = await supabase.from("ads").insert([
-      {
-        title: form.title,
-        image_url: publicUrlData.publicUrl,
-        target_link: form.target_link,
-        active: true
-      },
-    ]);
-
-    if (!dbError) {
-      alert("Ad uploaded successfully!");
-      setForm({ title: "", target_link: "" });
-      setImageFile(null);
-      fetchAds();
-    }
-
-    setLoading(false);
   };
 
   const toggleActive = async (adId, currentStatus) => {
-    const { error } = await supabase
-      .from("ads")
-      .update({ active: !currentStatus })
-      .eq("id", adId);
-
-    if (!error) fetchAds();
+    try {
+      const response = await fetch(config.getUrl('/admin/ads.php'), {
+        method: 'PUT',
+        headers: config.getAuthHeaders(),
+        credentials: 'include',
+        body: JSON.stringify({
+          id: adId,
+          active: !currentStatus
+        })
+      });
+      
+      if (response.ok) {
+        fetchAds();
+      } else {
+        const data = await response.json();
+        setError(data.error || "Failed to update ad status");
+      }
+    } catch (err) {
+      setError("Failed to update ad status");
+    }
   };
 
   return (
     <PageWrapper>
       <h2 className="text-2xl font-bold mb-4">📢 Ads Manager</h2>
+
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          {error}
+        </div>
+      )}
 
       <div className="bg-white p-4 rounded shadow mb-8 max-w-2xl">
         <h3 className="font-semibold mb-2">Upload New Ad</h3>

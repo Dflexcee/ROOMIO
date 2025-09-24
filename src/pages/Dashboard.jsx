@@ -1,44 +1,11 @@
 import React from "react";
-import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "../supabase";
+import { useAuth } from "../contexts/AuthContext";
 import Navbar from "../components/common/Navbar";
 
 export default function Dashboard() {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    supabase.auth.getUser().then(async ({ data, error: authError }) => {
-      console.log("Auth data:", data, "Auth error:", authError);
-      if (authError) {
-        setError("Authentication error. Please log in again.");
-        setLoading(false);
-        return;
-      }
-      const uid = data?.user?.id;
-      if (!uid) {
-        console.log("No user id found, redirecting to /signup-login");
-        navigate("/signup-login");
-        return;
-      }
-      const { data: profile, error: profileError } = await supabase
-        .from("users")
-        .select("*")
-        .eq("id", uid)
-        .single();
-      console.log("Profile data:", profile, "Profile error:", profileError);
-      if (profileError) {
-        setError("Failed to load profile. Please try again later.");
-        setLoading(false);
-        return;
-      }
-      setUser(profile);
-      setLoading(false);
-    });
-  }, [navigate]);
 
   const goTo = (route) => {
     navigate(route);
@@ -55,34 +22,26 @@ export default function Dashboard() {
     </div>
   );
 
-  if (error) return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-gray-900 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors">
-      <Navbar />
-      <div className="flex-1 flex items-center justify-center p-4">
-        <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl p-8 max-w-md w-full text-center border border-blue-100 dark:border-gray-800 animate-fade-in">
-          <div className="text-lg text-red-600 dark:text-red-400 font-bold">{error}</div>
-        </div>
-      </div>
-    </div>
-  );
-
-  if (!user) return null;
+  if (!user) {
+    navigate("/signup-login");
+    return null;
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-gray-900 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors">
       <Navbar />
       <div className="flex-1 flex items-center justify-center p-4">
         <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl p-8 max-w-2xl w-full border border-blue-100 dark:border-gray-800 animate-fade-in">
-          <h2 className="text-2xl md:text-3xl font-extrabold mb-6 text-blue-700 dark:text-pink-400 drop-shadow-sm transition-all duration-300">👋 Welcome, {user.full_name}!</h2>
+          <h2 className="text-2xl md:text-3xl font-extrabold mb-6 text-blue-700 dark:text-pink-400 drop-shadow-sm transition-all duration-300">👋 Welcome, {user.email}!</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            <Card icon="🔍" label="Find Roommate" onClick={() => goTo("/find-roommate")} />
+            <Card icon="��" label="Find Roommate" onClick={() => goTo("/find-roommate")} />
             <Card icon="🏠" label="Find Room" onClick={() => goTo("/find-room")} />
             <Card icon="✍️" label="Post Room" onClick={() => goTo("/post-room")} />
             <Card icon="⚠️" label="Scam Alerts" onClick={() => goTo("/scam-board")} />
             <Card icon="💬" label="Community Feed" onClick={() => goTo("/community")} />
           </div>
           <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-8">
-            💡 Use the buttons above to get started, or return to edit your profile anytime.
+            �� Use the buttons above to get started, or return to edit your profile anytime.
           </p>
         </div>
       </div>
@@ -100,4 +59,4 @@ function Card({ icon, label, onClick }) {
       <p className="font-semibold text-sm text-blue-700 dark:text-pink-400">{label}</p>
     </div>
   );
-} 
+}

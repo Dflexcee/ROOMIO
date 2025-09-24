@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { supabase } from "../supabase";
+import { getCurrentUser } from "../services/authService";
 
 const LoadingSpinner = () => (
   <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -21,30 +21,16 @@ export default function ProtectedAdminRoute() {
 
   const checkAccess = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session?.user) {
+      const { user } = await getCurrentUser();
+      if (!user) {
         setIsAllowed(false);
         return;
       }
-
-      const { data: profile, error } = await supabase
-        .from("users")
-        .select("role")
-        .eq("id", session.user.id)
-        .single();
-
-      if (error) {
-        console.error("Error fetching user role:", error);
+      if (!["admin", "manager"].includes(user.role)) {
         setIsAllowed(false);
         return;
       }
-
-      if (!profile || !["admin", "manager"].includes(profile.role)) {
-        setIsAllowed(false);
-      } else {
-        setIsAllowed(true);
-      }
+      setIsAllowed(true);
     } catch (error) {
       console.error("Error checking access:", error);
       setIsAllowed(false);

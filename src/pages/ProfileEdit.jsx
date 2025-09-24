@@ -1,47 +1,75 @@
 import React, { useEffect, useState } from "react";
-import { supabase } from "../supabase";
+import { useAuth } from "../contexts/AuthContext";
 import DarkModeToggle from "../components/common/DarkModeToggle";
+import config from "../config/api.js";
 
 export default function ProfileEdit() {
   const [form, setForm] = useState({});
   const [profilePic, setProfilePic] = useState(null);
-  const [userId, setUserId] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { user, loading } = useAuth();
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(async ({ data }) => {
-      const uid = data?.user?.id;
-      if (!uid) return;
-      setUserId(uid);
-      const { data: profile } = await supabase.from("users").select("*").eq("id", uid).single();
-      if (profile) {
-        setForm(profile);
-        setLoading(false);
-      }
-    });
-  }, []);
+    if (user) {
+      setForm({
+        full_name: user.full_name || "",
+        age: user.age || "",
+        gender: user.gender || "",
+        university: user.university || "",
+        department: user.department || "",
+        budget_range: user.budget_range || "",
+        lifestyle: user.lifestyle || "",
+        about_me: user.about_me || "",
+        avatar_url: user.avatar_url || ""
+      });
+    }
+  }, [user]);
 
   const handleUpdate = async () => {
     setSaving(true);
     let avatarUrl = form.avatar_url;
-    if (profilePic) {
-      const filename = `profile-${userId}-${Date.now()}`;
-      const { error: uploadError } = await supabase.storage
-        .from("avatars")
-        .upload(filename, profilePic);
-      if (!uploadError) {
-        const { data } = supabase.storage.from("avatars").getPublicUrl(filename);
-        avatarUrl = data.publicUrl;
+    
+    try {
+      // Upload profile picture if selected
+      if (profilePic) {
+        const formData = new FormData();
+        formData.append("avatar", profilePic);
+        
+        const uploadResponse = await fetch(config.getUrl(config.endpoints.upload.avatar), {
+          method: "POST",
+          credentials: "include",
+          body: formData
+        });
+        
+        const uploadData = await uploadResponse.json();
+        
+        if (uploadResponse.ok) {
+          avatarUrl = uploadData.avatar_url;
+        }
       }
-    }
-    const { error } = await supabase.from("users").update({
-      ...form,
-      avatar_url: avatarUrl,
-    }).eq("id", userId);
-    setSaving(false);
-    if (!error) {
-      alert("Profile updated!");
+
+      // Update profile data
+      const updateResponse = await fetch(config.getUrl(config.endpoints.profile.update), {
+        method: "POST",
+        headers: config.getAuthHeaders(),
+        credentials: "include",
+        body: JSON.stringify({
+          ...form,
+          avatar_url: avatarUrl
+        })
+      });
+
+      const updateData = await updateResponse.json();
+      
+      if (updateResponse.ok) {
+        alert("Profile updated!");
+      } else {
+        alert(updateData.error || "Failed to update profile.");
+      }
+    } catch (error) {
+      alert("Network error. Please try again.");
+    } finally {
+      setSaving(false);
     }
   };
 

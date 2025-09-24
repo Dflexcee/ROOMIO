@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from "react";
-import { supabase } from "../supabase";
+import { useAuth } from "../contexts/AuthContext";
 import PageWrapper from "../components/common/PageWrapper";
 import BecomeVerifiedForm from "../components/user/BecomeVerifiedForm";
 import DarkModeToggle from "../components/common/DarkModeToggle";
 import Navbar from "../components/common/Navbar";
 import { useNavigate } from "react-router-dom";
+import config from "../config/api.js";
 
 export default function PostRoom() {
-  const [user, setUser] = useState(null);
+  const { user, loading } = useAuth();
   const [images, setImages] = useState([]);
   const [form, setForm] = useState({
     title: "",
@@ -18,86 +19,121 @@ export default function PostRoom() {
     role: "",
     conditions: "",
   });
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [uploadProgress, setUploadProgress] = useState(0);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    supabase.auth.getUser().then(async ({ data }) => {
-      if (!data?.user?.id) return;
-      const { data: profile } = await supabase.from("users").select("*").eq("id", data.user.id).single();
-      setUser(profile);
-    });
-  }, []);
-
   const handleSubmit = async () => {
     setError("");
-    setLoading(true);
+    setSubmitting(true);
     setUploadProgress(0);
+    
     if (!user || !form.title.trim() || !form.rent || !form.location.trim() || !form.gender_preference || !form.role) {
       setError("Please fill all required fields.");
-      setLoading(false);
+      setSubmitting(false);
       return;
     }
+    
     if (images.length === 0) {
       setError("Please upload at least one image.");
-      setLoading(false);
+      setSubmitting(false);
       return;
     }
+    
     const rentValue = Number(form.rent);
     if (isNaN(rentValue) || rentValue <= 0) {
       setError("Please enter a valid rent amount.");
-      setLoading(false);
+      setSubmitting(false);
       return;
     }
-    const uploadedUrls = [];
-    for (let i = 0; i < images.length; i++) {
-      const file = images[i];
-      if (!file.type.startsWith("image/")) {
-        setError("Only image files are allowed.");
-        setLoading(false);
-        return;
+
+    try {
+      // Upload images to PHP API
+      const uploadedUrls = [];
+      for (let i = 0; i < images.length; i++) {
+        const file = images[i];
+        if (!file.type.startsWith("image/")) {
+          setError("Only image files are allowed.");
+          setSubmitting(false);
+          return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+          setError("Each image must be less than 5MB.");
+          setSubmitting(false);
+          return;
+        }
+        
+        const formData = new FormData();
+        formData.append("image", file);
+        formData.append("user_id", user.id);
+        
+        const uploadResponse = await fetch(config.getUrl(config.endpoints.upload.roomImage), {
+          method: "POST",
+          credentials: "include",
+          body: formData
+        });
+        
+        const uploadData = await uploadResponse.json();
+        
+        if (!uploadResponse.ok) {
+          setError("Failed to upload one or more images: " + uploadData.error);
+          setSubmitting(false);
+          return;
+        }
+        
+        uploadedUrls.push(uploadData.image_url);
+        setUploadProgress(Math.round(((uploadedUrls.length) / images.length) * 100));
       }
-      if (file.size > 5 * 1024 * 1024) {
-        setError("Each image must be less than 5MB.");
-        setLoading(false);
-        return;
+
+      // Create room
+      const createResponse = await fetch(config.getUrl(config.endpoints.rooms.create), {
+        method: "POST",
+        headers: config.getAuthHeaders(),
+        credentials: "include",
+        body: JSON.stringify({
+          ...form,
+          rent: rentValue,
+          images: uploadedUrls,
+          status: "pending"
+        })
+      });
+
+      const createData = await createResponse.json();
+      
+      if (createResponse.ok) {
+        alert("Room submitted! Pending approval.");
+        setForm({ title: "", description: "", rent: "", location: "", gender_preference: "", role: "", conditions: "" });
+        setImages([]);
+        navigate("/my-rooms");
+      } else {
+        setError("Failed to submit room: " + createData.error);
       }
-      const filename = `room-${user.id}-${Date.now()}-${file.name}`;
-      const { error: uploadError } = await supabase.storage.from("room-images").upload(filename, file, { upsert: true });
-      if (uploadError) {
-        setError("Failed to upload one or more images: " + uploadError.message);
-        setLoading(false);
-        return;
-      }
-      const { data: image } = supabase.storage.from("room-images").getPublicUrl(filename);
-      uploadedUrls.push(image.publicUrl);
-      setUploadProgress(Math.round(((uploadedUrls.length) / images.length) * 100));
-    }
-    const { error: insertError } = await supabase.from("rooms").insert([
-      {
-        ...form,
-        rent: rentValue,
-        user_id: user.id,
-        images: uploadedUrls,
-        posted_at: new Date().toISOString(),
-        status: "pending",
-      },
-    ]);
-    setLoading(false);
-    setUploadProgress(0);
-    if (!insertError) {
-      alert("Room submitted! Pending approval.");
-      setForm({ title: "", description: "", rent: "", location: "", gender_preference: "", role: "", conditions: "" });
-      setImages([]);
-    } else {
-      setError("Failed to submit room: " + insertError.message);
+    } catch (error) {
+      setError("Network error. Please try again.");
+    } finally {
+      setSubmitting(false);
+      setUploadProgress(0);
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-gray-900 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors">
+        <div className="flex-1 flex items-center justify-center p-4">
+          <div className="text-white text-xl">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    navigate("/signup-login");
+    return null;
+  }
+
   // Only allow verified users to post
-  if (user && user.verification_status !== "verified") {
+  if (user.verification_status !== "verified") {
     return (
       <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-gray-900 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors">
         <div className="flex justify-center pt-4">
@@ -213,7 +249,7 @@ export default function PostRoom() {
             className="border p-2 w-full mb-4 rounded bg-gray-50 dark:bg-gray-700 dark:text-white"
             rows={2}
           />
-          {loading && (
+          {submitting && (
             <div className="w-full mb-4">
               <div className="bg-gray-200 rounded-full h-4">
                 <div
@@ -226,10 +262,10 @@ export default function PostRoom() {
           )}
           <button
             onClick={handleSubmit}
-            disabled={loading}
+            disabled={submitting}
             className="bg-gradient-to-r from-green-500 to-blue-600 dark:from-blue-700 dark:to-purple-700 text-white px-6 py-2 rounded-full shadow-lg hover:scale-105 transition text-lg font-semibold w-full disabled:opacity-60"
           >
-            {loading ? "Submitting..." : "Submit Room"}
+            {submitting ? "Submitting..." : "Submit Room"}
           </button>
         </div>
       </div>
