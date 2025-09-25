@@ -44,9 +44,11 @@ export default function MyRooms() {
     if (!window.confirm("Are you sure you want to delete this room?")) return;
     
     try {
-      const response = await fetch(config.getUrl(`${config.endpoints.rooms.delete}?id=${id}`), {
-        method: 'DELETE',
-        credentials: 'include'
+      const response = await fetch(config.getUrl(config.endpoints.rooms.delete), {
+        method: 'POST',
+        headers: config.getAuthHeaders(),
+        credentials: 'include',
+        body: JSON.stringify({ room_id: id })
       });
       
       if (response.ok) {

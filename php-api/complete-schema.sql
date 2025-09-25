@@ -137,3 +137,21 @@ CREATE INDEX IF NOT EXISTS idx_messages_sender_receiver ON messages(sender_id, r
 CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at);
 CREATE INDEX IF NOT EXISTS idx_community_posts_user_id ON community_posts(user_id);
 CREATE INDEX IF NOT EXISTS idx_community_posts_created_at ON community_posts(created_at);
+
+
+
+-- Add missing profile columns to users table
+ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(20);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS religion VARCHAR(255);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS full_name VARCHAR(255);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS age INT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS gender ENUM('male','female') DEFAULT 'male';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS university VARCHAR(255);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS department VARCHAR(255);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS budget_range VARCHAR(255);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS lifestyle VARCHAR(255);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS about_me TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(500);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_status ENUM('pending','verified','rejected') DEFAULT 'pending';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS account_type ENUM('tenant','landlord','agent') DEFAULT 'tenant';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;

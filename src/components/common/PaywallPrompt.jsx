@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "../../supabase";
+import config from "../../config/api";
 
 export default function PaywallPrompt({ userId, feature, onClose }) {
   const [featureInfo, setFeatureInfo] = useState(null);
@@ -10,13 +10,20 @@ export default function PaywallPrompt({ userId, feature, onClose }) {
   }, [feature]);
 
   const fetchFeatureInfo = async () => {
-    const { data, error } = await supabase
-      .from("payment_settings")
-      .select("*")
-      .eq("feature_name", feature)
-      .single();
-
-    if (!error) setFeatureInfo(data);
+    try {
+      const response = await fetch(config.getUrl(config.endpoints.payments.settings), {
+        method: 'GET',
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const featureData = data.settings?.find(s => s.feature_name === feature);
+        if (featureData) setFeatureInfo(featureData);
+      }
+    } catch (error) {
+      console.error('Error fetching feature info:', error);
+    }
   };
 
   const handlePayNow = () => {

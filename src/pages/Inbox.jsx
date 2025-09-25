@@ -1,54 +1,65 @@
 import React, { useEffect, useState } from "react";
-import { supabase } from "../supabase";
-import PageWrapper from "../components/common/PageWrapper";
+import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/common/Navbar";
 import DarkModeToggle from "../components/common/DarkModeToggle";
+import PageWrapper from "../components/common/PageWrapper";
+import config from "../config/api.js";
 
 export default function Inbox() {
+  const { user } = useAuth();
   const [conversations, setConversations] = useState([]);
-  const [userId, setUserId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
-    supabase.auth.getUser().then(async ({ data }) => {
-      const uid = data?.user?.id;
-      if (uid) {
-        setUserId(uid);
-        fetchConversations(uid);
-      } else {
-        setLoading(false);
-      }
-    });
-  }, []);
+    if (user?.id) {
+      fetchConversations(user.id);
+    } else {
+      setLoading(false);
+    }
+  }, [user]);
 
   const fetchConversations = async (uid) => {
     setLoading(true);
     setError("");
     try {
-      const { data, error } = await supabase
-        .from("messages")
-        .select("*, sender:sender_id(id, full_name, avatar_url), receiver:receiver_id(id, full_name, avatar_url)")
-        .or(`sender_id.eq.${uid},receiver_id.eq.${uid}`)
-        .order("sent_at", { ascending: false });
-      if (error) throw error;
-      // Group by user (conversation view)
-      const uniqueChats = {};
-      data?.forEach((msg) => {
-        const otherUser = msg.sender_id === uid ? msg.receiver : msg.sender;
-        if (!otherUser?.id) return;
-        if (!uniqueChats[otherUser.id]) {
-          uniqueChats[otherUser.id] = {
-            user: otherUser,
-            lastMessage: msg.message,
-            time: msg.sent_at,
-          };
-        }
+      const response = await fetch(config.getUrl(config.endpoints.messages.list), {
+        method: 'GET',
+        credentials: 'include'
       });
-      setConversations(Object.values(uniqueChats));
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch conversations');
+      }
+      
+      const data = await response.json();
+      
+      if (data.success && data.messages) {
+        // Group by user (conversation view)
+        const uniqueChats = {};
+        data.messages.forEach((msg) => {
+          const otherUserId = msg.sender_id === uid ? msg.receiver_id : msg.sender_id;
+          if (!otherUserId) return;
+          if (!uniqueChats[otherUserId]) {
+            uniqueChats[otherUserId] = {
+              user: {
+                id: otherUserId,
+                full_name: msg.sender_id === uid ? msg.receiver_name : msg.sender_name,
+                avatar_url: msg.sender_id === uid ? msg.receiver_avatar : msg.sender_avatar
+              },
+              lastMessage: msg.message,
+              time: msg.sent_at,
+            };
+          }
+        });
+        setConversations(Object.values(uniqueChats));
+      } else {
+        setConversations([]);
+      }
     } catch (err) {
+      console.error('Inbox error:', err);
       setError("Failed to load conversations. Please try again.");
     } finally {
       setLoading(false);

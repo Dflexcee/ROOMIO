@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { supabase } from "../supabase";
+import config from "../config/api";
 import Navbar from "../components/common/Navbar";
 import { useNavigate } from "react-router-dom";
 
@@ -31,27 +31,17 @@ export default function FindRoom() {
     setLoading(true);
     setError(null);
     try {
-      const { data, error } = await supabase
-        .from("rooms")
-        .select(`
-          id,
-          title,
-          description,
-          location,
-          rent,
-          status,
-          posted_at,
-          updated_at,
-          user_id,
-          images,
-          amenities,
-          gender_preference,
-          conditions,
-          role
-        `)
-        .order("posted_at", { ascending: false });
-      if (error) throw error;
-      setRooms(data || []);
+      const response = await fetch(config.getUrl(config.endpoints.rooms.list), {
+        method: 'GET',
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch rooms');
+      }
+      
+      const data = await response.json();
+      setRooms(data.rooms || []);
     } catch (err) {
       setError("Failed to load rooms. Please try again.");
     } finally {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { supabase } from "../supabase";
+import config from "../config/api";
 import Navbar from "../components/common/Navbar";
 import { useNavigate } from "react-router-dom";
 
@@ -24,11 +24,21 @@ export default function FindRoommate() {
   }, []);
 
   const fetchUsers = async () => {
-    const { data } = await supabase
-      .from("users")
-      .select("id, full_name, gender, religion, lifestyle, university, budget_range, avatar_url, about_me, status")
-      .neq("status", "banned");
-    setAllUsers(data || []);
+    try {
+      const response = await fetch(config.getUrl(config.endpoints.users.list), {
+        method: 'GET',
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch users');
+      }
+      
+      const data = await response.json();
+      setAllUsers(data.users || []);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
   };
 
   const filtered = allUsers.filter((u) => {

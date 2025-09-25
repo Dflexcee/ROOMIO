@@ -51,13 +51,17 @@ export async function logout() {
 // Get current user
 export async function getCurrentUser() {
   try {
+    console.log('getCurrentUser: Making request to:', config.getUrl(config.endpoints.auth.me));
     const res = await fetch(config.getUrl(config.endpoints.auth.me), {
       method: 'GET',
       credentials: 'include'
     })
+    console.log('getCurrentUser: Response status:', res.status);
     const data = await res.json()
+    console.log('getCurrentUser: Response data:', data);
     return { user: data?.user || null, error: null }
   } catch (e) {
+    console.error('getCurrentUser: Error:', e);
     return { user: null, error: e }
   }
 } 

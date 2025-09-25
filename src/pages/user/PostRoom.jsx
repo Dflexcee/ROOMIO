@@ -1,37 +1,16 @@
 import { useState, useEffect } from "react";
-import { supabase } from "../../supabase";
+import { useAuth } from "../../contexts/AuthContext";
 import BecomeVerifiedForm from "../../components/user/BecomeVerifiedForm";
 
 export default function PostRoom() {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { user, loading } = useAuth();
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchUserProfile();
-  }, []);
-
-  const fetchUserProfile = async () => {
-    try {
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError) throw sessionError;
-      if (!session) throw new Error('No active session');
-
-      const { data: profile, error: profileError } = await supabase
-        .from("users")
-        .select("*")
-        .eq("id", session.user.id)
-        .single();
-
-      if (profileError) throw profileError;
-      setUser(profile);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+    if (!user) {
+      setError('Please log in to post a room');
     }
-  };
+  }, [user]);
 
   if (loading) {
     return (

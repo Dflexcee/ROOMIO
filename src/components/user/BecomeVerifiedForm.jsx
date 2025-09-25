@@ -1,9 +1,11 @@
 import React from "react";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "../../supabase";
+import { useAuth } from "../../contexts/AuthContext";
+import config from "../../config/api";
 
 export default function BecomeVerifiedForm({ userId, onSuccess }) {
+  const { user } = useAuth();
   const [role, setRole] = useState("landlord");
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -16,19 +18,33 @@ export default function BecomeVerifiedForm({ userId, onSuccess }) {
   useEffect(() => {
     // Check current verification status
     const checkVerificationStatus = async () => {
-      const { data, error } = await supabase
-        .from('users')
-        .select('verification_status')
-        .eq('id', userId)
-        .single();
-
-      if (!error && data) {
-        setVerificationStatus(data.verification_status);
+      if (!user?.id) return;
+      
+      try {
+        // For now, just set a default status - you can implement actual checking later
+        setVerificationStatus('pending');
+      } catch (error) {
+        console.error('Error checking verification status:', error);
       }
     };
 
     checkVerificationStatus();
-  }, [userId]);
+  }, [user]);
+
+  const handleSubmit = async () => {
+    // Placeholder for verification submission
+    setLoading(true);
+    try {
+      // TODO: Implement actual verification submission via PHP API
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+      setSuccess(true);
+      if (onSuccess) onSuccess();
+    } catch (error) {
+      setError('Verification submission failed');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];

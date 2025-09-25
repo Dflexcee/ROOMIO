@@ -2,7 +2,13 @@
 
 $allowedOrigins = [
     'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:5175',
+    'http://localhost:5176',
     'http://127.0.0.1:5173',
+    'http://127.0.0.1:5174',
+    'http://127.0.0.1:5175',
+    'http://127.0.0.1:5176',
 ];
 
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
@@ -12,10 +18,19 @@ if ($origin && in_array($origin, $allowedOrigins, true)) {
 }
 
 header('Access-Control-Allow-Credentials: true');
-header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, X-Requested-With');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, X-Requested-With, credentials');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    // Handle preflight requests
+    $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+    if ($origin && in_array($origin, $allowedOrigins, true)) {
+        header('Access-Control-Allow-Origin: ' . $origin);
+        header('Vary: Origin');
+    }
+    header('Access-Control-Allow-Credentials: true');
+    header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type, X-Requested-With, credentials');
     http_response_code(204);
     exit;
 }
@@ -28,9 +43,9 @@ if (session_status() === PHP_SESSION_NONE) {
         'lifetime' => 0,
         'path' => '/',
         'domain' => '',
-        'secure' => $isLocalDev ? false : true,
-        'httponly' => true,
-        'samesite' => $isLocalDev ? 'None' : 'Lax',
+        'secure' => false, // Always false for local development
+        'httponly' => false, // Allow JavaScript access for debugging
+        'samesite' => 'Lax', // Use Lax for better compatibility
     ];
     if (PHP_VERSION_ID >= 70300) {
         session_set_cookie_params($cookieParams);

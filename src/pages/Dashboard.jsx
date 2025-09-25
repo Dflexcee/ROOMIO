@@ -37,6 +37,7 @@ export default function Dashboard() {
             <Card icon="��" label="Find Roommate" onClick={() => goTo("/find-roommate")} />
             <Card icon="🏠" label="Find Room" onClick={() => goTo("/find-room")} />
             <Card icon="✍️" label="Post Room" onClick={() => goTo("/post-room")} />
+            <Card icon="👤" label="Edit Profile" onClick={() => goTo("/profile-edit")} />
             <Card icon="⚠️" label="Scam Alerts" onClick={() => goTo("/scam-board")} />
             <Card icon="💬" label="Community Feed" onClick={() => goTo("/community")} />
           </div>

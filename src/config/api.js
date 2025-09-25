@@ -61,6 +61,7 @@ const config = {
       
       // Users
       users: {
+        list: '/users/list.php',
         get: '/users/get.php'
       },
 

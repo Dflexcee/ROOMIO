@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { supabase } from "../../supabase";
+import { useAuth } from "../../contexts/AuthContext";
 
 const navItems = [
   { path: "/admin/dashboard", label: "Dashboard", icon: "📊", roles: ["admin", "manager"] },
@@ -22,33 +22,10 @@ const navItems = [
 ];
 
 export default function Sidebar() {
-  const [role, setRole] = useState("");
-  const [loading, setLoading] = useState(true);
+  const { user, loading } = useAuth();
   const location = useLocation();
 
-  useEffect(() => {
-    fetchUserRole();
-  }, []);
-
-  const fetchUserRole = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session?.user) {
-        const { data: profile } = await supabase
-          .from("users")
-          .select("role")
-          .eq("id", session.user.id)
-          .single();
-          
-        setRole(profile?.role || "");
-      }
-    } catch (error) {
-      console.error("Error fetching user role:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const role = user?.role || "";
 
   if (loading) {
     return (
