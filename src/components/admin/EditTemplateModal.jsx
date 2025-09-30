@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { supabase } from "../../supabase";
 
 const TEMPLATE_VARIABLES = {
   REGISTRATION_SUCCESS: {
@@ -35,21 +34,7 @@ export default function EditTemplateModal({ template, onClose, onUpdate, isCreat
     setLoading(true);
     
     try {
-      if (isCreate) {
-        const { error } = await supabase
-          .from("email_templates")
-          .insert([form]);
-        
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("email_templates")
-          .update(form)
-          .eq("id", template.id);
-        
-        if (error) throw error;
-      }
-      
+      // Mock save functionality
       onUpdate();
       onClose();
     } catch (error) {

@@ -1,16 +1,18 @@
 <?php
 // send-broadcast.php
+require_once __DIR__ . '/php-api/lib/Config.php';
+
 // Allow CORS for local development (optional, secure this in production)
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json");
 
-// Load SMTP settings from a config file or environment variables
-$smtp_host = getenv('SMTP_HOST') ?: 'mail.yourdomain.com';
-$smtp_port = getenv('SMTP_PORT') ?: 587;
-$smtp_user = getenv('SMTP_USER') ?: 'admin@yourdomain.com';
-$smtp_pass = getenv('SMTP_PASS') ?: 'yourpassword';
-$smtp_from = getenv('SMTP_FROM') ?: 'admin@yourdomain.com';
-$smtp_from_name = getenv('SMTP_FROM_NAME') ?: 'Admin';
+// Load SMTP settings from config
+$smtp_host = Config::get('SMTP_HOST', 'mail.yourdomain.com');
+$smtp_port = (int)Config::get('SMTP_PORT', '587');
+$smtp_user = Config::get('SMTP_USER', 'admin@yourdomain.com');
+$smtp_pass = Config::get('SMTP_PASS', 'yourpassword');
+$smtp_from = Config::get('SMTP_FROM', 'admin@yourdomain.com');
+$smtp_from_name = Config::get('SMTP_FROM_NAME', 'Admin');
 
 // Get POST data
 $data = json_decode(file_get_contents("php://input"), true);

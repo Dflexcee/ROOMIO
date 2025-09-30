@@ -3,7 +3,7 @@ require_once '../../config.php';
 require_once '../../bootstrap.php';
 
 // Check if user is logged in
-if (!isset(require_auth();SESSION['user_id'])) {
+if (!isset($_SESSION['user_id'])) {
     json_response(['error' => 'Authentication required'], 401);
     exit;
 }
@@ -41,7 +41,7 @@ if (!move_uploaded_file($file['tmp_name'], $filepath)) {
 }
 
 // Generate public URL
-$publicUrl = 'http://localhost/roomio/php-api/uploads/chat-files/' . $filename;
+$publicUrl = Config::getUploadUrl('chat-files/' . $filename);
 
 json_response([
     'success' => true,

@@ -2,6 +2,7 @@ import React from "react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { signUpWithEmail, loginWithEmail } from "../services/authService";
+import { useAuth } from "../contexts/AuthContext";
 import DarkModeToggle from "../components/common/DarkModeToggle";
 
 export default function SignupLogin() {
@@ -11,6 +12,7 @@ export default function SignupLogin() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const { refreshUser } = useAuth();
 
   const handleAuth = async () => {
     setLoading(true);
@@ -27,7 +29,8 @@ export default function SignupLogin() {
       console.error('Login/Signup error:', result.error);
       setError(result.error.message);
     } else {
-      // After successful login/signup, redirect to dashboard
+      // After successful login/signup, refresh user context and redirect to dashboard
+      await refreshUser();
       navigate("/dashboard");
     }
 

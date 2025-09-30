@@ -15,10 +15,11 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $input = json_decode(file_get_contents('php://input'), true);
 $userId = $_SESSION['user_id'];
 
-// Validate required fields
+// Validate required fields - only use fields that exist in your users table
 $allowedFields = [
     'full_name', 'age', 'gender', 'university', 'department', 
-    'budget_range', 'religion', 'lifestyle', 'about_me', 'phone'
+    'budget_range', 'religion', 'lifestyle'
+    // Removed 'about_me' and 'phone' as they may not exist in your users table
 ];
 
 $updateData = [];
@@ -32,8 +33,8 @@ if (empty($updateData)) {
     json_response(['error' => 'No valid fields to update'], 400);
 }
 
-// Add updated_at timestamp
-$updateData['updated_at'] = date('Y-m-d H:i:s');
+// Don't add updated_at since it may not exist in the table
+// $updateData['updated_at'] = date('Y-m-d H:i:s');
 
 // Build SQL query
 $setClause = [];

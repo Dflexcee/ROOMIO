@@ -1,6 +1,7 @@
 import React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 import DarkModeToggle from "../components/common/DarkModeToggle";
 
 const slides = [
@@ -44,6 +45,14 @@ const slides = [
 export default function Onboarding() {
   const [index, setIndex] = useState(0);
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
+
+  // Redirect if user is already logged in
+  useEffect(() => {
+    if (!loading && user) {
+      navigate("/dashboard");
+    }
+  }, [user, loading, navigate]);
 
   const next = () => {
     if (index < slides.length - 1) {
@@ -52,6 +61,19 @@ export default function Onboarding() {
       navigate("/signup-login");
     }
   };
+
+  // Show loading while checking authentication
+  if (loading) {
+    return (
+      <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-gray-900 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors">
+        <div className="flex-1 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl p-8 max-w-md w-full text-center border border-blue-100 dark:border-gray-800 animate-fade-in">
+            <div className="text-lg text-blue-700 dark:text-pink-400 font-bold">Loading...</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-gray-900 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors">

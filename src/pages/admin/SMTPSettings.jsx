@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { supabase } from "../../supabase";
 import PageWrapper from "../../components/common/PageWrapper";
+import adminConfig from "../../config/adminConfig";
+import config from "../../config/api.js";
 
 export default function SMTPSettings() {
   const [settings, setSettings] = useState({
@@ -24,19 +25,22 @@ export default function SMTPSettings() {
     setError("");
     setSuccess("");
     
-    const { data, error } = await supabase
-      .from("smtp_settings")
-      .select("*")
-      .limit(1)
-      .single();
-      
-    if (error && error.code !== 'PGRST116') {
-      setError("Failed to load settings");
+    try {
+      const response = await fetch(config.getUrl(config.endpoints.admin.smtpSettings));
+      const data = await response.json();
+
+      if (response.ok) {
+        setSettings(data.settings || {});
+      } else {
+        console.error("Error fetching SMTP settings:", data.error);
+        setError("Failed to load SMTP settings: " + (data.error || 'Unknown error'));
+      }
+    } catch (err) {
+      console.error("Error fetching SMTP settings:", err);
+      setError("Failed to load SMTP settings. Please try again.");
+    } finally {
+      setLoading(false);
     }
-    if (data) {
-      setSettings(data);
-    }
-    setLoading(false);
   };
 
   const handleSubmit = async (e) => {
@@ -45,16 +49,29 @@ export default function SMTPSettings() {
     setError("");
     setSuccess("");
 
-    const { error } = await supabase
-      .from("smtp_settings")
-      .upsert([settings], { onConflict: "id" });
+    try {
+      const response = await fetch(config.getUrl(config.endpoints.admin.smtpSettings), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(settings)
+      });
 
-    if (error) {
-      setError("Failed to save settings: " + error.message);
-    } else {
-      setSuccess("SMTP settings saved successfully!");
+      const data = await response.json();
+
+      if (response.ok) {
+        setSuccess("SMTP settings saved successfully!");
+      } else {
+        console.error("Error saving SMTP settings:", data.error);
+        setError("Failed to save SMTP settings: " + (data.error || 'Unknown error'));
+      }
+    } catch (err) {
+      console.error("Error saving SMTP settings:", err);
+      setError("Failed to save SMTP settings. Please try again.");
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   if (loading) {
@@ -97,7 +114,7 @@ export default function SMTPSettings() {
                 value={settings.host}
                 onChange={(e) => setSettings({ ...settings, host: e.target.value })}
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                placeholder="e.g., smtp.gmail.com"
+                placeholder={`e.g., ${adminConfig.getSMTPExamples().host}`}
                 required
               />
             </div>
@@ -153,7 +170,7 @@ export default function SMTPSettings() {
                 value={settings.from_email}
                 onChange={(e) => setSettings({ ...settings, from_email: e.target.value })}
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                placeholder="e.g., noreply@yourdomain.com"
+                placeholder={`e.g., ${adminConfig.getSMTPExamples().fromEmail}`}
                 required
               />
             </div>

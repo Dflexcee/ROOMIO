@@ -1,4 +1,15 @@
 <?php
+// Add CORS headers
+header('Content-Type: application/json');
+header('Access-Control-Allow-Origin: http://localhost:5173');
+header('Access-Control-Allow-Methods: GET, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type');
+header('Access-Control-Allow-Credentials: true');
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    exit();
+}
+
 require_once __DIR__ . '/../../bootstrap.php';
 require_once __DIR__ . '/../../config.php';
 
@@ -11,32 +22,35 @@ $q = isset($_GET['q']) ? trim($_GET['q']) : '';
 $limit = isset($_GET['limit']) ? max(1, min(100, intval($_GET['limit']))) : 20;
 $offset = isset($_GET['offset']) ? max(0, intval($_GET['offset'])) : 0;
 
-$sql = "SELECT id, title, description, location, rent, status, user_id, images, amenities, created_at, updated_at
-        FROM rooms WHERE 1=1";
+$sql = "SELECT r.id, r.title, r.description, r.location, r.rent, r.status, r.user_id, r.images, r.amenities, r.created_at, r.updated_at,
+               u.full_name as poster_name, u.email as poster_email, u.avatar_url as poster_avatar, u.phone as poster_phone
+        FROM rooms r
+        LEFT JOIN users u ON r.user_id = u.id
+        WHERE 1=1";
 $params = [];
 
 if ($status !== '') {
-    $sql .= " AND status = ?";
+    $sql .= " AND r.status = ?";
     $params[] = $status;
 }
 if ($location !== '') {
-    $sql .= " AND location LIKE ?";
+    $sql .= " AND r.location LIKE ?";
     $params[] = "%{$location}%";
 }
 if ($minRent !== null) {
-    $sql .= " AND rent >= ?";
+    $sql .= " AND r.rent >= ?";
     $params[] = $minRent;
 }
 if ($maxRent !== null) {
-    $sql .= " AND rent <= ?";
+    $sql .= " AND r.rent <= ?";
     $params[] = $maxRent;
 }
 if ($q !== '') {
-    $sql .= " AND (title LIKE ? OR description LIKE ?)";
+    $sql .= " AND (r.title LIKE ? OR r.description LIKE ?)";
     $params[] = "%{$q}%";
     $params[] = "%{$q}%";
 }
-$sql .= " ORDER BY created_at DESC LIMIT ? OFFSET ?";
+$sql .= " ORDER BY r.created_at DESC LIMIT ? OFFSET ?";
 $params[] = $limit;
 $params[] = $offset;
 

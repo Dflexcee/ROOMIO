@@ -22,4 +22,6 @@ if (!$user || !password_verify($password, $user['password_hash'])) {
 
 $_SESSION['user_id'] = (int)$user['id'];
 
+error_log("Login successful: user_id = " . $_SESSION['user_id']);
+
 json_response(['user' => ['id' => (int)$user['id'], 'email' => $user['email'], 'role' => $user['role']]]); 

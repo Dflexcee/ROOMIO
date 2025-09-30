@@ -1,76 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { supabase } from '../../supabase';
-import PageWrapper from '../../components/common/PageWrapper';
-
-function EditProfileModal({ open, onClose, onSave, form, onChange, saving }) {
-  if (!open) return null;
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-      <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md relative">
-        <h3 className="text-lg font-bold mb-4">Edit User Profile</h3>
-        <label className="block mb-2">
-          <span className="text-sm">Full Name</span>
-          <input
-            type="text"
-            name="full_name"
-            value={form.full_name}
-            onChange={onChange}
-            className="border p-2 rounded w-full mt-1"
-            placeholder="Full Name"
-            disabled={saving}
-          />
-        </label>
-        <label className="block mb-4">
-          <span className="text-sm">Phone</span>
-          <input
-            type="text"
-            name="phone"
-            value={form.phone}
-            onChange={onChange}
-            className="border p-2 rounded w-full mt-1"
-            placeholder="Phone"
-            disabled={saving}
-          />
-        </label>
-        <div className="flex justify-end gap-2">
-          <button
-            onClick={onClose}
-            className="bg-gray-400 text-white px-4 py-2 rounded"
-            disabled={saving}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onSave}
-            className="bg-green-600 text-white px-4 py-2 rounded"
-            disabled={saving}
-          >
-            {saving ? "Saving..." : "Save"}
-          </button>
-        </div>
-        <button
-          onClick={onClose}
-          className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-xl"
-          aria-label="Close"
-        >
-          ×
-        </button>
-      </div>
-    </div>
-  );
-}
+import React, { useState, useEffect } from "react";
+import PageWrapper from "../../components/common/PageWrapper";
+import config from "../../config/api.js";
 
 export default function Users() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState('all'); // all, verified, unverified
-  const [statusFilter, setStatusFilter] = useState('all'); // all, active, suspended, banned
-  const [profiles, setProfiles] = useState([]);
-  const [editUserId, setEditUserId] = useState(null);
-  const [editForm, setEditForm] = useState({ full_name: '', phone: '' });
-  const [saving, setSaving] = useState(false);
-  const [modalOpen, setModalOpen] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -79,356 +13,612 @@ export default function Users() {
 
   const fetchUsers = async () => {
     setLoading(true);
-    const { data: usersData, error: usersError } = await supabase
-      .from('users')
-      .select('*')
-      .order('created_at', { ascending: false });
-    const { data: profilesData, error: profilesError } = await supabase
-      .from('profiles')
-      .select('*');
-    if (usersError || profilesError) {
-      setError('Error fetching users or profiles');
-    } else {
-      setUsers(usersData || []);
-      setProfiles(profilesData || []);
-    }
-    setLoading(false);
-  };
-
-  const getProfile = (userId) => profiles.find((p) => p.id === userId) || {};
-
-  const startEdit = (user) => {
-    const profile = getProfile(user.id);
-    setEditUserId(user.id);
-    setEditForm({
-      full_name: profile.full_name || '',
-      phone: profile.phone || '',
-    });
-    setModalOpen(true);
-  };
-  const closeModal = () => {
-    setEditUserId(null);
-    setEditForm({ full_name: '', phone: '' });
-    setModalOpen(false);
-  };
-  const handleEditChange = (e) => {
-    setEditForm({ ...editForm, [e.target.name]: e.target.value });
-  };
-  const saveEdit = async () => {
-    setSaving(true);
     setError(null);
     try {
-      // Upsert profile (insert if not exists, update if exists)
-      const { error } = await supabase
-        .from('profiles')
-        .upsert({ id: editUserId, full_name: editForm.full_name, phone: editForm.phone });
-      if (error) throw error;
-      closeModal();
-      await fetchUsers();
-    } catch (err) {
-      setError('Failed to update user profile. Please try again.');
+      const response = await fetch(config.getUrl(config.endpoints.admin.users));
+      const data = await response.json();
+      
+      if (response.ok) {
+        setUsers(data.users || []);
+      } else {
+        setError('Error fetching users: ' + (data.error || 'Unknown error'));
+      }
+    } catch (error) {
+      setError('Error fetching users: ' + error.message);
     } finally {
-      setSaving(false);
+      setLoading(false);
     }
   };
 
-  const updateUserStatus = async (userId, newStatus) => {
-    const { error } = await supabase
-      .from('users')
-      .update({ status: newStatus })
-      .eq('id', userId);
+  const handleAction = async (userId, action) => {
+    if (!userId) {
+      alert(`Error: User ID is missing`);
+      return;
+    }
+    
+    // For status-changing actions, show reason modal first
+    if (['suspend', 'ban', 'activate', 'deactivate'].includes(action)) {
+      setPendingAction({ userId, action });
+      setShowReasonModal(true);
+      return;
+    }
+    
+    // For other actions, proceed directly
+    await executeAction(userId, action, '');
+  };
 
-    if (error) {
-      console.error('Error updating user status:', error);
-      alert('Failed to update user status');
+  const executeAction = async (userId, action, reason) => {
+    try {
+      const response = await fetch(config.getUrl(config.endpoints.admin.users), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          action: action,
+          reason: reason,
+          admin_id: 1 // You can get this from auth context
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        alert(`${action} successful for user ${userId}`);
+        
+        // Update local state
+        setUsers(prev => prev.map(user => {
+          if (user.id === userId) {
+            let updatedUser = { ...user };
+            if (action === 'verify') {
+              updatedUser.is_verified = 1;
+            } else if (action === 'activate') {
+              updatedUser.status = 'active';
+            } else if (action === 'suspend') {
+              updatedUser.status = 'suspended';
+            } else if (action === 'ban') {
+              updatedUser.status = 'banned';
+            } else if (action === 'deactivate') {
+              updatedUser.status = 'inactive';
+            }
+            updatedUser.status_reason = reason;
+            updatedUser.status_changed_at = new Date().toISOString();
+            return updatedUser;
+          }
+          return user;
+        }));
+      } else {
+        alert(`Failed to ${action} user: ${data.error || data.message || 'Unknown error'}`);
+      }
+    } catch (error) {
+      alert(`Error ${action} user: ${error.message}`);
+    }
+  };
+
+  const handleReasonSubmit = async () => {
+    if (pendingAction) {
+      await executeAction(pendingAction.userId, pendingAction.action, reasonText);
+      setShowReasonModal(false);
+      setPendingAction(null);
+      setReasonText('');
+    }
+  };
+
+  const getStatusBadge = (user) => {
+    if (user.status === 'banned') {
+      return <span className="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs">Banned</span>;
+    } else if (user.status === 'suspended') {
+      return <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">Suspended</span>;
+    } else if (user.is_verified) {
+      return <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">Verified</span>;
     } else {
-      fetchUsers();
+      return <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs">Unverified</span>;
     }
   };
 
-  const exportToCSV = () => {
-    // Define CSV headers
-    const headers = [
-      'Full Name',
-      'Email',
-      'University',
-      'Department',
-      'Verified',
-      'Status',
-      'Created At'
-    ].join(',');
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [showReasonModal, setShowReasonModal] = useState(false);
+  const [pendingAction, setPendingAction] = useState(null);
+  const [reasonText, setReasonText] = useState('');
 
-    // Convert user data to CSV rows
-    const rows = filteredUsers.map(user => [
-      user.full_name || '',
-      user.email || '',
-      user.university || '',
-      user.department || '',
-      user.is_verified ? 'Yes' : 'No',
-      user.status || 'active',
-      new Date(user.created_at).toLocaleDateString()
-    ].map(field => `"${field}"`).join(','));
-
-    // Combine headers and rows
-    const csv = [headers, ...rows].join('\n');
-
-    // Create and trigger download
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `users_export_${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
+  const handleViewProfile = (user) => {
+    setSelectedUser(user);
+    setShowModal(true);
   };
 
-  // Filter users based on search term and filters
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = (
-      (getProfile(user.id).full_name?.toLowerCase() || '').includes(search.toLowerCase()) ||
-      (user.email?.toLowerCase() || '').includes(search.toLowerCase()) ||
-      (user.university?.toLowerCase() || '').includes(search.toLowerCase())
+  const handleCloseModal = () => {
+    setSelectedUser(null);
+    setShowModal(false);
+  };
+
+  // Handle local field changes (just update the UI)
+  const handleFieldChange = (field, value) => {
+    setSelectedUser(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Save all changes to database
+  const handleSaveProfile = async () => {
+    if (!selectedUser) return;
+    
+    console.log('Saving profile for user:', selectedUser.id);
+    console.log('Profile data:', selectedUser);
+    
+    try {
+      const requestBody = {
+        user_id: selectedUser.id,
+        action: 'update_profile',
+        field: 'bulk_update',
+        profile_data: selectedUser
+      };
+      
+      console.log('Request body:', requestBody);
+      console.log('API URL:', config.getUrl(config.endpoints.admin.users));
+      
+      // Try the main API URL first
+      let apiUrl = config.getUrl(config.endpoints.admin.users);
+      console.log('Trying API URL:', apiUrl);
+      
+      const response = await fetch(apiUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(requestBody)
+      });
+      
+      console.log('Response status:', response.status);
+      console.log('Response ok:', response.ok);
+      
+      const data = await response.json();
+      console.log('Response data:', data);
+      
+      if (response.ok && data.success) {
+        alert('Profile updated successfully');
+        // Update local state
+        setUsers(prev => prev.map(user => 
+          user.id === selectedUser.id ? selectedUser : user
+        ));
+      } else {
+        alert('Failed to update profile: ' + (data.error || data.message || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      
+      // Try alternative API URL as fallback
+      try {
+        console.log('Trying fallback API URL...');
+        const fallbackUrl = 'http://localhost/roomio/php-api/public/admin/users-clean.php';
+        const fallbackResponse = await fetch(fallbackUrl, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify(requestBody)
+        });
+        
+        const fallbackData = await fallbackResponse.json();
+        console.log('Fallback response:', fallbackData);
+        
+        if (fallbackResponse.ok && fallbackData.success) {
+          alert('Profile updated successfully (via fallback)');
+          setUsers(prev => prev.map(user => 
+            user.id === selectedUser.id ? selectedUser : user
+          ));
+          return;
+        }
+      } catch (fallbackError) {
+        console.error('Fallback also failed:', fallbackError);
+      }
+      
+      alert('Error updating profile: ' + error.message);
+    }
+  };
+
+  const getActionButtons = (user) => {
+    return (
+      <div className="flex space-x-2 flex-wrap">
+        <button
+          onClick={() => handleViewProfile(user)}
+          className="px-3 py-1 bg-blue-100 text-blue-800 rounded text-xs hover:bg-blue-200"
+        >
+          View
+        </button>
+        <button
+          onClick={() => handleAction(user.id, 'verify')}
+          className="px-3 py-1 bg-green-100 text-green-800 rounded text-xs hover:bg-green-200"
+        >
+          Verify
+        </button>
+        <button
+          onClick={() => handleAction(user.id, 'check_online')}
+          className="px-3 py-1 bg-purple-100 text-purple-800 rounded text-xs hover:bg-purple-200"
+        >
+          Check Online
+        </button>
+        {user.status === 'active' ? (
+          <button
+            onClick={() => handleAction(user.id, 'deactivate')}
+            className="px-3 py-1 bg-gray-100 text-gray-800 rounded text-xs hover:bg-gray-200"
+          >
+            Deactivate
+          </button>
+        ) : (
+          <button
+            onClick={() => handleAction(user.id, 'activate')}
+            className="px-3 py-1 bg-green-100 text-green-800 rounded text-xs hover:bg-green-200"
+          >
+            Activate
+          </button>
+        )}
+        <button
+          onClick={() => handleAction(user.id, 'suspend')}
+          className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded text-xs hover:bg-yellow-200"
+        >
+          Suspend
+        </button>
+        <button
+          onClick={() => handleAction(user.id, 'ban')}
+          className="px-3 py-1 bg-red-100 text-red-800 rounded text-xs hover:bg-red-200"
+        >
+          Ban
+        </button>
+      </div>
     );
-
-    const matchesVerification = 
-      filter === 'all' ? true :
-      filter === 'verified' ? user.is_verified :
-      !user.is_verified;
-
-    const matchesStatus =
-      statusFilter === 'all' ? true :
-      user.status === statusFilter;
-
-    return matchesSearch && matchesVerification && matchesStatus;
-  });
-
-  // Confirm email for a user (client-side, updates a custom field in users table)
-  const confirmUserEmail = async (userId) => {
-    try {
-      const { error } = await supabase
-        .from('users')
-        .update({ email_confirmed: true })
-        .eq('id', userId);
-      if (error) throw error;
-      alert('Email confirmed!');
-      fetchUsers();
-    } catch (err) {
-      alert('Failed to confirm email: ' + (err.message || err));
-    }
   };
 
-  // Confirm verification for a user (client-side, updates is_verified field)
-  const confirmUserVerification = async (userId) => {
-    try {
-      const { error } = await supabase
-        .from('users')
-        .update({ is_verified: true })
-        .eq('id', userId);
-      if (error) throw error;
-      alert('User verified!');
-      fetchUsers();
-    } catch (err) {
-      alert('Failed to verify user: ' + (err.message || err));
-    }
-  };
+  if (loading) {
+    return (
+      <PageWrapper>
+        <div className="flex justify-center items-center h-64">
+          <p className="text-lg text-gray-600">Loading users...</p>
+        </div>
+      </PageWrapper>
+    );
+  }
+
+  if (error) {
+    return (
+      <PageWrapper>
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+          <strong className="font-bold">Error!</strong>
+          <span className="block sm:inline"> {error}</span>
+        </div>
+      </PageWrapper>
+    );
+  }
 
   return (
     <PageWrapper>
-      <EditProfileModal
-        open={modalOpen}
-        onClose={closeModal}
-        onSave={saveEdit}
-        form={editForm}
-        onChange={handleEditChange}
-        saving={saving}
-      />
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold mb-4">👥 User Management</h2>
-        
-        {/* Search and Filters */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-          <input
-            type="text"
-            placeholder="Search by name, email, or university..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="p-2 border rounded w-full"
-          />
-          
-          <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            className="p-2 border rounded"
-          >
-            <option value="all">All Users</option>
-            <option value="verified">Verified Only</option>
-            <option value="unverified">Unverified Only</option>
-          </select>
+      <h2 className="text-2xl font-bold mb-4">👥 User Management</h2>
+      
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {users.map((user) => (
+              <tr key={user.id}>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div>
+                    <div className="text-sm font-medium text-gray-900">{user.full_name}</div>
+                    <div className="text-sm text-gray-500">{user.email}</div>
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {getStatusBadge(user)}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {getActionButtons(user)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="p-2 border rounded"
-          >
-            <option value="all">All Statuses</option>
-            <option value="active">Active</option>
-            <option value="suspended">Suspended</option>
-            <option value="banned">Banned</option>
-          </select>
+      {/* User Profile Modal */}
+      {showModal && selectedUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b flex justify-between items-center">
+              <h3 className="text-xl font-bold">User Profile: {selectedUser.full_name}</h3>
+              <button
+                onClick={handleCloseModal}
+                className="text-gray-500 hover:text-gray-700 text-2xl"
+              >
+                &times;
+              </button>
+            </div>
+            
+            <div className="p-6">
+              {/* Profile Picture Section */}
+              <div className="mb-6 text-center">
+                <div className="inline-block">
+                  {selectedUser.avatar_url ? (
+                    <img
+                      src={selectedUser.avatar_url}
+                      alt="Profile"
+                      className="w-24 h-24 rounded-full object-cover border-4 border-gray-200"
+                    />
+                  ) : (
+                    <div className="w-24 h-24 rounded-full bg-gray-300 flex items-center justify-center text-2xl font-bold text-gray-600">
+                      {selectedUser.full_name ? selectedUser.full_name.charAt(0).toUpperCase() : 'U'}
+                    </div>
+                  )}
+                </div>
+                <div className="mt-2">
+                      <input
+                        type="url"
+                        placeholder="Avatar URL"
+                        value={selectedUser.avatar_url || ''}
+                        onChange={(e) => handleFieldChange('avatar_url', e.target.value)}
+                        className="text-sm border border-gray-300 rounded px-2 py-1 w-64"
+                      />
+                </div>
+              </div>
 
-          <button
-            onClick={exportToCSV}
-            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-          >
-            Export to CSV
-          </button>
-        </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Basic Info */}
+                <div>
+                  <h4 className="font-semibold mb-3">Basic Information</h4>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Full Name</label>
+                      <input
+                        type="text"
+                        value={selectedUser.full_name || ''}
+                        onChange={(e) => handleFieldChange('full_name', e.target.value)}
+                        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Email</label>
+                      <input
+                        type="email"
+                        value={selectedUser.email || ''}
+                        onChange={(e) => handleFieldChange('email', e.target.value)}
+                        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Phone</label>
+                      <input
+                        type="text"
+                        value={selectedUser.phone || ''}
+                        onChange={(e) => handleFieldChange('phone', e.target.value)}
+                        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Age</label>
+                      <input
+                        type="number"
+                        value={selectedUser.age || ''}
+                        onChange={(e) => handleFieldChange('age', parseInt(e.target.value) || null)}
+                        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Gender</label>
+                      <select
+                        value={selectedUser.gender || ''}
+                        onChange={(e) => handleFieldChange('gender', e.target.value)}
+                        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                      >
+                        <option value="">Select Gender</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">University</label>
+                      <input
+                        type="text"
+                        value={selectedUser.university || ''}
+                        onChange={(e) => handleFieldChange('university', e.target.value)}
+                        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Department</label>
+                      <input
+                        type="text"
+                        value={selectedUser.department || ''}
+                        onChange={(e) => handleFieldChange('department', e.target.value)}
+                        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">About Me</label>
+                      <textarea
+                        value={selectedUser.about_me || ''}
+                        onChange={(e) => handleFieldChange('about_me', e.target.value)}
+                        rows={3}
+                        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                      />
+                    </div>
+                  </div>
+                </div>
 
-        {/* Users Table */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    User
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    University
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Department
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Verification
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {loading ? (
-                  <tr>
-                    <td colSpan="6" className="px-6 py-4 text-center">
-                      Loading users...
-                    </td>
-                  </tr>
-                ) : filteredUsers.length === 0 ? (
-                  <tr>
-                    <td colSpan="6" className="px-6 py-4 text-center">
-                      No users found
-                    </td>
-                  </tr>
-                ) : (
-                  filteredUsers.map((user) => {
-                    const profile = getProfile(user.id);
-                    const profileIncomplete = !profile.full_name || !profile.phone;
-                    return (
-                      <tr key={user.id}>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            {user.avatar_url && (
-                              <img
-                                className="h-10 w-10 rounded-full mr-3"
-                                src={user.avatar_url}
-                                alt=""
-                              />
-                            )}
-                            <div>
-                              <div className="font-medium text-gray-900">
-                                {profile.full_name || <span className="text-gray-400">No name</span>}
-                                {profileIncomplete && (
-                                  <span className="ml-2 text-xs text-yellow-600">(Incomplete)</span>
-                                )}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                {user.email}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                {profile.phone || <span className="text-gray-400">No phone</span>}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {user.university || 'N/A'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {user.department || 'N/A'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                            user.is_verified
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-yellow-100 text-yellow-800'
-                          }`}>
-                            {user.is_verified ? 'Verified' : 'Unverified'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                            user.status === 'active' ? 'bg-green-100 text-green-800' :
-                            user.status === 'suspended' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-red-100 text-red-800'
-                          }`}>
-                            {user.status || 'active'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                          <button
-                            onClick={() => startEdit(user)}
-                            className="bg-blue-600 text-white px-3 py-1 rounded text-xs mr-2"
-                          >
-                            Edit Profile
-                          </button>
-                          <button
-                            onClick={() => confirmUserEmail(user.id)}
-                            className="bg-green-600 text-white px-3 py-1 rounded text-xs mr-2"
-                          >
-                            Confirm Email
-                          </button>
-                          <button
-                            onClick={() => confirmUserVerification(user.id)}
-                            className="bg-purple-600 text-white px-3 py-1 rounded text-xs mr-2"
-                          >
-                            Confirm Verification
-                          </button>
-                          {user.status !== 'active' && (
-                            <button
-                              onClick={() => updateUserStatus(user.id, 'active')}
-                              className="text-green-600 hover:text-green-900"
-                            >
-                              Activate
-                            </button>
-                          )}
-                          {user.status !== 'suspended' && (
-                            <button
-                              onClick={() => updateUserStatus(user.id, 'suspended')}
-                              className="text-yellow-600 hover:text-yellow-900"
-                            >
-                              Suspend
-                            </button>
-                          )}
-                          {user.status !== 'banned' && (
-                            <button
-                              onClick={() => updateUserStatus(user.id, 'banned')}
-                              className="text-red-600 hover:text-red-900"
-                            >
-                              Ban
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
+                {/* Account Info */}
+                <div>
+                  <h4 className="font-semibold mb-3">Account Information</h4>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">User ID</label>
+                      <input
+                        type="text"
+                        value={selectedUser.id}
+                        disabled
+                        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Role</label>
+                      <select
+                        value={selectedUser.role}
+                        onChange={(e) => handleFieldChange('role', e.target.value)}
+                        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                      >
+                        <option value="user">User</option>
+                        <option value="admin">Admin</option>
+                        <option value="landlord">Landlord</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Status</label>
+                      <select
+                        value={selectedUser.status}
+                        onChange={(e) => handleFieldChange('status', e.target.value)}
+                        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                      >
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                        <option value="suspended">Suspended</option>
+                        <option value="banned">Banned</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Verified</label>
+                      <select
+                        value={selectedUser.is_verified}
+                        onChange={(e) => handleFieldChange('is_verified', parseInt(e.target.value))}
+                        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                      >
+                        <option value={0}>Unverified</option>
+                        <option value={1}>Verified</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Email Confirmed</label>
+                      <select
+                        value={selectedUser.email_confirmed}
+                        onChange={(e) => handleFieldChange('email_confirmed', parseInt(e.target.value))}
+                        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                      >
+                        <option value={0}>Not Confirmed</option>
+                        <option value={1}>Confirmed</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Created At</label>
+                      <input
+                        type="text"
+                        value={selectedUser.created_at}
+                        disabled
+                        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-100"
+                      />
+                    </div>
+                    {selectedUser.status_reason && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Status Reason</label>
+                        <textarea
+                          value={selectedUser.status_reason}
+                          disabled
+                          rows={2}
+                          className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-100"
+                        />
+                      </div>
+                    )}
+                    {selectedUser.status_changed_at && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Status Changed At</label>
+                        <input
+                          type="text"
+                          value={new Date(selectedUser.status_changed_at).toLocaleString()}
+                          disabled
+                          className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-100"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="mt-6 flex justify-between">
+                <div className="text-sm text-gray-500">
+                  * Make changes above and click Save to update the database
+                </div>
+                <div className="flex space-x-3">
+                  <button
+                    onClick={handleCloseModal}
+                    className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSaveProfile}
+                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                  >
+                    Save Changes
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Reason Modal */}
+      {showReasonModal && pendingAction && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+            <div className="p-6 border-b">
+              <h3 className="text-lg font-bold">
+                {pendingAction.action === 'suspend' && 'Suspend User'}
+                {pendingAction.action === 'ban' && 'Ban User'}
+                {pendingAction.action === 'activate' && 'Activate User'}
+                {pendingAction.action === 'deactivate' && 'Deactivate User'}
+              </h3>
+            </div>
+            
+            <div className="p-6">
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Reason for {pendingAction.action}:
+                </label>
+                <textarea
+                  value={reasonText}
+                  onChange={(e) => setReasonText(e.target.value)}
+                  placeholder={`Enter reason for ${pendingAction.action}...`}
+                  rows={4}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => {
+                    setShowReasonModal(false);
+                    setPendingAction(null);
+                    setReasonText('');
+                  }}
+                  className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleReasonSubmit}
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                >
+                  Confirm {pendingAction.action}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </PageWrapper>
   );
-} 
+}

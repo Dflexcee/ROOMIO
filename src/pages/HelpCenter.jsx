@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import config from "../config/api.js";
 
 export default function HelpCenter() {
+  const { user } = useAuth();
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -14,31 +15,41 @@ export default function HelpCenter() {
   const [reply, setReply] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({ subject: "", priority: "medium", message: "" });
-  const [user, setUser] = useState(null);
-  const [profile, setProfile] = useState(null);
   const navigate = useNavigate();
 
-  const fetchUserAndTickets = async () => {
+  const fetchTickets = async () => {
     setLoading(true);
     setError("");
     try {
-      // 1. Get the current user from auth context
       if (!user) {
         setError("Please log in to access the help center.");
         setLoading(false);
         return;
       }
 
-      setUser(user);
+      // Fetch tickets from API
+      const response = await fetch(config.getUrl(config.endpoints.tickets.list), {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
 
-      // 2. Use user data from auth context
-      setProfile(user);
+      const data = await response.json();
 
-      // 3. For now, set empty tickets array - you can implement actual ticket fetching later
-      setTickets([]);
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to fetch tickets');
+      }
+
+      if (data.success) {
+        setTickets(data.tickets || []);
+      } else {
+        throw new Error(data.message || 'Failed to load tickets');
+      }
     } catch (err) {
-      console.error("Unexpected error:", err);
-      setError("An unexpected error occurred. Please try again.");
+      console.error("Error fetching tickets:", err);
+      setError(err.message || "Failed to load tickets. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -46,7 +57,7 @@ export default function HelpCenter() {
 
   useEffect(() => {
     if (user) {
-      fetchUserAndTickets();
+      fetchTickets();
     }
   }, [user]);
 
@@ -55,7 +66,7 @@ export default function HelpCenter() {
     setSubmitting(true);
     setError("");
     setSuccess("");
-    
+
     if (!user) {
       setError("You must be logged in to submit a ticket.");
       setSubmitting(false);
@@ -64,10 +75,35 @@ export default function HelpCenter() {
     }
 
     try {
-      // For now, just show success message - you can implement actual ticket creation later
-      setSuccess("Ticket submitted successfully! We'll get back to you soon.");
-      setForm({ subject: "", priority: "medium", message: "" });
-      setSelectedTicket(null);
+      // Create ticket via API
+      const response = await fetch(config.getUrl(config.endpoints.tickets.create), {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          subject: form.subject,
+          message: form.message,
+          priority: form.priority
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to create ticket');
+      }
+
+      if (data.success) {
+        setSuccess("Ticket submitted successfully! We'll get back to you soon.");
+        setForm({ subject: "", priority: "medium", message: "" });
+        setSelectedTicket(null);
+        // Refresh tickets list
+        fetchTickets();
+      } else {
+        throw new Error(data.message || 'Failed to create ticket');
+      }
     } catch (err) {
       console.error("Error submitting ticket:", err);
       setError(err.message || "Failed to submit ticket. Please try again.");
@@ -80,16 +116,75 @@ export default function HelpCenter() {
     if (!reply.trim()) return;
     setSubmitting(true);
     setError("");
-    
+
     try {
-      // For now, just show success message - you can implement actual reply creation later
-      setSuccess("Reply sent successfully!");
-      setReply("");
+      // Send reply via API
+      const response = await fetch(config.getUrl(config.endpoints.tickets.reply), {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ticket_id: ticketId,
+          message: reply
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to send reply');
+      }
+
+      if (data.success) {
+        setSuccess("Reply sent successfully!");
+        setReply("");
+        // Refresh the ticket details
+        await fetchTicketDetails(ticketId);
+      } else {
+        throw new Error(data.message || 'Failed to send reply');
+      }
     } catch (err) {
       console.error("Error sending reply:", err);
       setError(err.message || "Failed to send reply. Please try again.");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const fetchTicketDetails = async (ticketId) => {
+    try {
+      const response = await fetch(config.getUrl(config.endpoints.tickets.get) + `?id=${ticketId}`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to fetch ticket details');
+      }
+
+      if (data.success && data.ticket) {
+        // Update the selected ticket with the latest data
+        setSelectedTicket(data.ticket);
+
+        // Also update the ticket in the tickets list
+        setTickets(prevTickets =>
+          prevTickets.map(ticket =>
+            ticket.id === ticketId ? data.ticket : ticket
+          )
+        );
+      } else {
+        throw new Error(data.message || 'Failed to load ticket details');
+      }
+    } catch (err) {
+      console.error("Error fetching ticket details:", err);
+      setError(err.message || "Failed to load ticket details. Please try again.");
     }
   };
 
@@ -108,12 +203,12 @@ export default function HelpCenter() {
               <div className="text-center">
                 <div className="text-3xl mb-2">📞</div>
                 <h3 className="font-semibold mb-2">WhatsApp/Phone</h3>
-                <p className="text-gray-600 dark:text-gray-300">+234 123 456 7890</p>
+                <p className="text-gray-600 dark:text-gray-300">{import.meta.env.VITE_SUPPORT_PHONE || '+234 123 456 7890'}</p>
               </div>
               <div className="text-center">
                 <div className="text-3xl mb-2">📧</div>
                 <h3 className="font-semibold mb-2">Email</h3>
-                <p className="text-gray-600 dark:text-gray-300">support@roomio.com</p>
+                <p className="text-gray-600 dark:text-gray-300">{import.meta.env.VITE_SUPPORT_EMAIL || 'support@roomio.com'}</p>
               </div>
               <div className="text-center">
                 <div className="text-3xl mb-2">📍</div>
@@ -133,7 +228,7 @@ export default function HelpCenter() {
                 <label className="block text-gray-700 dark:text-gray-300 mb-2">Name</label>
                 <input
                   type="text"
-                  value={profile?.full_name || user?.email?.split('@')[0] || "No name"}
+                  value={user?.full_name || user?.email?.split('@')[0] || "No name"}
                   disabled
                   className="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
                 />
@@ -142,7 +237,7 @@ export default function HelpCenter() {
                 <label className="block text-gray-700 dark:text-gray-300 mb-2">Email</label>
                 <input
                   type="email"
-                  value={profile?.email || user?.email || "No email"}
+                  value={user?.email || "No email"}
                   disabled
                   className="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
                 />
@@ -203,7 +298,7 @@ export default function HelpCenter() {
                   {tickets.map((ticket) => (
                     <div
                       key={ticket.id}
-                      onClick={() => setSelectedTicket(ticket)}
+                      onClick={() => fetchTicketDetails(ticket.id)}
                       className={`p-4 rounded shadow cursor-pointer ${
                         selectedTicket?.id === ticket.id ? "bg-blue-100" : "bg-white"
                       }`}

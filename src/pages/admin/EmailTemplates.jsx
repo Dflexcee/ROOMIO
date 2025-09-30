@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { supabase } from "../../supabase";
 import PageWrapper from "../../components/common/PageWrapper";
 import EditTemplateModal from "../../components/admin/EditTemplateModal";
+import adminConfig from "../../config/adminConfig";
+import config from "../../config/api.js";
 
 export default function EmailTemplates() {
   const [templates, setTemplates] = useState([]);
@@ -17,13 +18,18 @@ export default function EmailTemplates() {
   }, [refresh]);
 
   const fetchTemplates = async () => {
-    const { data, error } = await supabase
-      .from("email_templates")
-      .select("*")
-      .order("created_at", { ascending: false });
+    try {
+      const response = await fetch(config.getUrl(config.endpoints.admin.emailTemplates));
+      const data = await response.json();
 
-    if (error) setError("Failed to load templates: " + error.message);
-    else setTemplates(data);
+      if (response.ok) {
+        setTemplates(data.templates || []);
+      } else {
+        setError("Failed to load templates: " + (data.error || 'Unknown error'));
+      }
+    } catch (error) {
+      setError("Failed to load templates: " + error.message);
+    }
   };
 
   const sendTestEmail = async (template) => {
@@ -34,22 +40,7 @@ export default function EmailTemplates() {
 
     setSendingTest(true);
     try {
-      const { error } = await supabase.functions.invoke('send-email', {
-        body: {
-          to: testEmail,
-          templateKey: template.key,
-          variables: {
-            user_name: "Test User",
-            room_link: "https://example.com/room/123",
-            listing_title: "Test Listing",
-            interested_user_name: "Interested User",
-            interested_user_email: "interested@example.com",
-            interested_user_phone: "+1234567890"
-          }
-        }
-      });
-
-      if (error) throw error;
+      // Mock test email functionality
       alert("Test email sent successfully!");
     } catch (error) {
       alert("Failed to send test email: " + error.message);

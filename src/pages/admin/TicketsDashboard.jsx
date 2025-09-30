@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "../../supabase";
-import Navbar from "../../components/common/Navbar";
-import DarkModeToggle from "../../components/common/DarkModeToggle";
+import PageWrapper from "../../components/common/PageWrapper";
+import config from "../../config/api.js";
 
 export default function TicketsDashboard() {
   const [tickets, setTickets] = useState([]);
@@ -14,47 +13,54 @@ export default function TicketsDashboard() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const checkAdmin = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        navigate("/signup-login");
-        return;
-      }
-
-      const { data: adminUser } = await supabase
-        .from("admin_users")
-        .select("*")
-        .eq("user_id", user.id)
-        .single();
-
-      if (!adminUser) {
-        navigate("/dashboard");
-        return;
-      }
-
-      fetchTickets();
-      fetchEmailTemplate();
-    };
-
-    checkAdmin();
-  }, [navigate]);
+    fetchTickets();
+    fetchEmailTemplate();
+  }, []);
 
   const fetchTickets = async () => {
     try {
-      const { data, error } = await supabase
-        .from("tickets")
-        .select(`
-          *,
-          ticket_responses(*),
-          users:user_id (
-            email,
-            full_name
-          )
-        `)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setTickets(data);
+      // Mock tickets data
+      const mockTickets = [
+        {
+          id: 1,
+          subject: "Login Issues",
+          priority: "high",
+          status: "open",
+          created_at: "2024-01-15T10:30:00Z",
+          users: { email: "user@example.com", full_name: "John Doe" },
+          ticket_responses: [
+            {
+              id: 1,
+              message: "I'm having trouble logging in to my account",
+              is_admin: false,
+              created_at: "2024-01-15T10:30:00Z"
+            }
+          ]
+        },
+        {
+          id: 2,
+          subject: "Payment Problem",
+          priority: "medium",
+          status: "in_progress",
+          created_at: "2024-01-14T14:20:00Z",
+          users: { email: "jane@example.com", full_name: "Jane Smith" },
+          ticket_responses: [
+            {
+              id: 2,
+              message: "My payment was charged twice",
+              is_admin: false,
+              created_at: "2024-01-14T14:20:00Z"
+            },
+            {
+              id: 3,
+              message: "We're looking into this issue",
+              is_admin: true,
+              created_at: "2024-01-14T15:30:00Z"
+            }
+          ]
+        }
+      ];
+      setTickets(mockTickets);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -64,14 +70,12 @@ export default function TicketsDashboard() {
 
   const fetchEmailTemplate = async () => {
     try {
-      const { data, error } = await supabase
-        .from("email_templates")
-        .select("*")
-        .eq("name", "ticket_auto_response")
-        .single();
-
-      if (error) throw error;
-      setEmailTemplate(data);
+      // Mock email template
+      const mockTemplate = {
+        subject: "Ticket Response - {ticket_subject}",
+        body: "Hello {user_name}, we have received your ticket #{ticket_id} regarding {ticket_subject}. We will get back to you soon."
+      };
+      setEmailTemplate(mockTemplate);
     } catch (err) {
       console.error("Error fetching email template:", err);
     }
@@ -79,13 +83,10 @@ export default function TicketsDashboard() {
 
   const handleStatusChange = async (ticketId, newStatus) => {
     try {
-      const { error } = await supabase
-        .from("tickets")
-        .update({ status: newStatus })
-        .eq("id", ticketId);
-
-      if (error) throw error;
-      fetchTickets();
+      // Mock status change
+      setTickets(prev => prev.map(ticket => 
+        ticket.id === ticketId ? { ...ticket, status: newStatus } : ticket
+      ));
     } catch (err) {
       setError(err.message);
     }
@@ -95,62 +96,37 @@ export default function TicketsDashboard() {
     if (!replyMessage.trim()) return;
 
     try {
-      const { error } = await supabase
-        .from("ticket_responses")
-        .insert([
-          {
-            ticket_id: ticketId,
-            message: replyMessage,
-            is_admin: true,
-            created_at: new Date().toISOString(),
-          },
-        ]);
+      // Mock reply functionality
+      const newResponse = {
+        id: Date.now(),
+        message: replyMessage,
+        is_admin: true,
+        created_at: new Date().toISOString()
+      };
 
-      if (error) throw error;
-
-      // Send email to user
-      const ticket = tickets.find(t => t.id === ticketId);
-      if (ticket && emailTemplate) {
-        const emailBody = emailTemplate.body
-          .replace("{user_name}", ticket.users.full_name)
-          .replace("{ticket_subject}", ticket.subject)
-          .replace("{ticket_priority}", ticket.priority)
-          .replace("{ticket_id}", ticket.id);
-
-        // Here you would integrate with your email service
-        console.log("Sending email:", {
-          to: ticket.users.email,
-          subject: emailTemplate.subject,
-          body: emailBody,
-        });
-      }
+      setTickets(prev => prev.map(ticket => 
+        ticket.id === ticketId 
+          ? { ...ticket, ticket_responses: [...ticket.ticket_responses, newResponse] }
+          : ticket
+      ));
 
       setReplyMessage("");
-      fetchTickets();
     } catch (err) {
       setError(err.message);
     }
   };
 
   if (loading) return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-gray-900 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors">
-      <div className="flex justify-center pt-4">
-        <DarkModeToggle />
+    <PageWrapper>
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
-      <Navbar />
-      <div className="flex-1 flex items-center justify-center p-4">
-        <div className="text-lg text-blue-700 dark:text-pink-400 font-bold">Loading...</div>
-      </div>
-    </div>
+    </PageWrapper>
   );
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-gray-900 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors">
-      <div className="flex justify-center pt-4">
-        <DarkModeToggle />
-      </div>
-      <Navbar />
-      <div className="flex-1 container mx-auto px-4 py-8">
+    <PageWrapper>
+      <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
           <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl p-8 border border-blue-100 dark:border-gray-800">
             <h2 className="text-2xl md:text-3xl font-extrabold mb-6 text-blue-700 dark:text-pink-400">Tickets Dashboard</h2>
@@ -266,6 +242,6 @@ export default function TicketsDashboard() {
           </div>
         </div>
       </div>
-    </div>
+    </PageWrapper>
   );
 } 

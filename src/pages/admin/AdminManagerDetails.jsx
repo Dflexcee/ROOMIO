@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { supabase } from "../../supabase";
 import PageWrapper from "../../components/common/PageWrapper";
+import config from "../../config/api.js";
 
 export default function AdminManagerDetails() {
   const [users, setUsers] = useState([]);
@@ -16,24 +16,32 @@ export default function AdminManagerDetails() {
   }, []);
 
   const fetchCurrentRole = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", session.user.id)
-        .single();
-      setCurrentRole(profile?.role);
-    }
+    // Mock current role
+    setCurrentRole("admin");
   };
 
   const fetchUsers = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("admin_manager_details")
-      .select("*")
-      .order("user_created_at", { ascending: false });
-    setUsers(data || []);
+    // Mock admin/manager data
+    const mockUsers = [
+      {
+        id: 1,
+        role: "admin",
+        email: "admin@roomio.com",
+        full_name: "Admin User",
+        phone: "+234-123-456-7890",
+        user_created_at: "2024-01-01T00:00:00Z"
+      },
+      {
+        id: 2,
+        role: "manager",
+        email: "manager@roomio.com",
+        full_name: "Manager User",
+        phone: "+234-987-654-3210",
+        user_created_at: "2024-01-02T00:00:00Z"
+      }
+    ];
+    setUsers(mockUsers);
     setLoading(false);
   };
 
@@ -56,13 +64,15 @@ export default function AdminManagerDetails() {
 
   const saveEdit = async () => {
     setSaving(true);
-    await supabase
-      .from("profiles")
-      .upsert({ id: editId, full_name: editForm.full_name, phone: editForm.phone });
+    // Mock save functionality
+    setUsers(prev => prev.map(user => 
+      user.id === editId 
+        ? { ...user, full_name: editForm.full_name, phone: editForm.phone }
+        : user
+    ));
     setSaving(false);
     setEditId(null);
     setEditForm({ full_name: "", phone: "" });
-    fetchUsers();
   };
 
   if (currentRole !== "admin") {

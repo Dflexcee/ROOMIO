@@ -19,29 +19,41 @@ const config = {
       
       // Profile endpoints
       profile: {
-        update: '/profile/update.php'
+        update: '/profile/update-fixed.php'
       },
       
       // Room endpoints
       rooms: {
         list: '/rooms/list.php',
         mine: '/rooms/mine.php',
-        create: '/rooms/create.php',
+        create: '/rooms/create-fixed.php',
         update: '/rooms/update.php',
-        delete: '/rooms/delete.php'
+        delete: '/rooms/delete.php',
+        get: '/rooms/get-simple.php'
       },
       
-      // Admin endpoints
-      admin: {
-        stats: '/admin-stats.php',
-        roomStatus: '/admin/rooms/status.php',
-        verificationRequests: '/admin/verification-requests.php',
-        verifyUser: '/admin/verify-user.php',
-        bannedUsers: '/admin/banned-users.php',
-        systemLogs: '/admin/system-logs.php',
-        banUser: '/admin/ban-user.php',
-        ads: '/admin/ads.php'
-      },
+    // Admin endpoints
+    admin: {
+      stats: '/admin/stats-working.php',
+      users: '/admin/users-clean.php',
+      tickets: '/admin/tickets.php',
+      emailTemplates: '/admin/email-templates.php',
+      smtpSettings: '/admin/smtp-settings.php',
+      smsSettings: '/admin/sms-settings.php',
+      broadcast: '/admin/broadcast.php',
+      listings: '/admin/listings-management.php',
+      currency: '/admin/currency-management.php',
+      roomStatus: '/admin/rooms/status.php',
+      verificationRequests: '/admin/verification-requests.php',
+      verificationRequestsFallback: '/admin/verification-requests-fallback.php',
+      verificationReview: '/admin/verification-review.php',
+      verificationActions: '/admin/verification-actions.php',  // NEW: Verification-only actions
+      verifyUser: '/admin/verify-user.php',
+      bannedUsers: '/admin/banned-users.php',
+      systemLogs: '/admin/system-logs.php',
+      banUser: '/admin/ban-user.php',
+      ads: '/admin/ads.php'
+    },
       
       // Payment endpoints
 // Payment endpoints
@@ -89,6 +101,20 @@ const config = {
         list: '/community-posts/list.php',
         create: '/community-posts/create.php',
         comment: '/community-posts/comment.php'
+      },
+
+      // Verification endpoints
+      verification: {
+        submit: '/verification/submit.php',
+        status: '/verification/status.php'
+      },
+
+      // Tickets endpoints (Help Center)
+      tickets: {
+        list: '/tickets/list.php',
+        create: '/tickets/create.php',
+        get: '/tickets/get.php',
+        reply: '/tickets/reply.php'
       }
     },
     

@@ -15,9 +15,7 @@ export default function AdsManager() {
 
   const fetchAds = async () => {
     try {
-      const response = await fetch(config.getUrl('/admin/ads.php'), {
-        credentials: 'include'
-      });
+      const response = await fetch(config.getUrl('/admin/ads.php'));
       const data = await response.json();
       
       if (response.ok) {

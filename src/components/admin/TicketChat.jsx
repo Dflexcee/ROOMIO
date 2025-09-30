@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { supabase } from "../../supabase";
 
 export default function TicketChat({ ticket }) {
   const [messages, setMessages] = useState([]);
@@ -12,41 +11,35 @@ export default function TicketChat({ ticket }) {
   }, [ticket, refresh]);
 
   const fetchMessages = async () => {
-    const { data, error } = await supabase
-      .from("ticket_messages")
-      .select("*")
-      .eq("ticket_id", ticket.id)
-      .order("sent_at", { ascending: true });
-
-    if (!error) setMessages(data);
+    // Mock messages data
+    const mockMessages = [
+      {
+        id: 1,
+        message: "I'm having trouble with my account",
+        is_admin: false,
+        sent_at: "2024-01-15T10:30:00Z"
+      },
+      {
+        id: 2,
+        message: "We're looking into this issue for you",
+        is_admin: true,
+        sent_at: "2024-01-15T11:00:00Z"
+      }
+    ];
+    setMessages(mockMessages);
   };
 
   const handleSend = async () => {
     if (!reply.trim()) return;
 
-    const { error } = await supabase.from("ticket_messages").insert([
-      {
-        ticket_id: ticket.id,
-        sender_role: "admin",
-        message: reply.trim(),
-      },
-    ]);
-
-    if (!error) {
-      setReply("");
-      setRefresh(!refresh);
-    }
+    // Mock send message functionality
+    setReply("");
+    setRefresh(!refresh);
   };
 
   const handleStatusUpdate = async (newStatus) => {
-    const { error } = await supabase
-      .from("support_tickets")
-      .update({ status: newStatus })
-      .eq("id", ticket.id);
-
-    if (!error) {
-      setStatus(newStatus);
-    }
+    // Mock status update functionality
+    setStatus(newStatus);
   };
 
   return (

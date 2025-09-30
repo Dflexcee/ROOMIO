@@ -11,11 +11,20 @@ function verify_password(string $password, string $hash): bool {
     return password_verify($password, $hash);
 }
 
-function require_auth(PDO $pdo): array {
+function require_auth(PDO $pdo, bool $check_status = true): array {
     if (!isset($_SESSION['user_id'])) {
         json_response(['error' => 'Not authenticated'], 401);
         exit;
     }
+
+    // Use the status check middleware if enabled
+    if ($check_status) {
+        // This will exit with 403 if user is banned/suspended/inactive
+        $user = checkUserStatus($pdo, $_SESSION['user_id'], true);
+        return $user;
+    }
+
+    // Fallback to basic auth check (without status validation)
     $stmt = $pdo->prepare('SELECT id, email, role, created_at FROM users WHERE id = ?');
     $stmt->execute([$_SESSION['user_id']]);
     $user = $stmt->fetch();

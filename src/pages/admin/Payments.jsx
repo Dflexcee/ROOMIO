@@ -30,9 +30,7 @@ export default function Payments() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(config.getUrl(config.endpoints.payments.settings), {
-        credentials: 'include'
-      });
+      const response = await fetch(config.getUrl('/payments-settings/list.php'));
       const data = await response.json();
       
       if (response.ok) {
@@ -87,13 +85,15 @@ export default function Payments() {
   const toggleLock = async (id, current) => {
     setError(null);
     try {
-      const response = await fetch(config.getUrl('/payment-settings/toggle-lock.php'), {
+      const response = await fetch(config.getUrl('/admin/payment-settings-update.php'), {
         method: 'POST',
-        headers: config.getAuthHeaders(),
-        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           id: id,
-          is_locked: !current
+          is_locked: !current,
+          action: 'toggle_lock'
         })
       });
       

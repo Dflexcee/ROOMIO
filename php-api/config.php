@@ -1,9 +1,11 @@
 <?php
 
-$DB_HOST = getenv('DB_HOST') ?: '127.0.0.1';
-$DB_NAME = getenv('DB_NAME') ?: 'roomio';
-$DB_USER = getenv('DB_USER') ?: 'ruser';
-$DB_PASS = getenv('DB_PASS') ?: 'cord3001';
+require_once __DIR__ . '/lib/Config.php';
+
+$DB_HOST = Config::get('DB_HOST', '127.0.0.1');
+$DB_NAME = Config::get('DB_NAME', 'roomio');
+$DB_USER = Config::get('DB_USER', 'ruser');
+$DB_PASS = Config::get('DB_PASS', 'cord3001');
 $DB_CHARSET = 'utf8mb4';
 
 

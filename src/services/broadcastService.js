@@ -1,18 +1,7 @@
-import { supabase } from "../supabase";
-
 export const broadcastService = {
   async sendEmail(to, subject, body) {
     try {
-      // Get SMTP settings from the database
-      const { data: smtpSettings, error: smtpError } = await supabase
-        .from("smtp_settings")
-        .select("*")
-        .single();
-
-      if (smtpError) throw new Error("SMTP settings not found");
-
-      // TODO: Implement actual email sending using SMTP settings
-      // This is where you'd integrate with your email service
+      // Mock email sending functionality
       console.log("Sending email to:", to, "with subject:", subject);
       
       return true;
@@ -24,16 +13,7 @@ export const broadcastService = {
 
   async sendSMS(to, message) {
     try {
-      // Get SMS settings from the database
-      const { data: smsSettings, error: smsError } = await supabase
-        .from("sms_settings")
-        .select("*")
-        .single();
-
-      if (smsError) throw new Error("SMS settings not found");
-
-      // TODO: Implement actual SMS sending using SMS API
-      // This is where you'd integrate with your SMS service
+      // Mock SMS sending functionality
       console.log("Sending SMS to:", to, "with message:", message);
       
       return true;
@@ -45,8 +25,7 @@ export const broadcastService = {
 
   async sendPush(to, title, body) {
     try {
-      // TODO: Implement push notification sending
-      // This would integrate with Firebase Cloud Messaging or similar
+      // Mock push notification functionality
       console.log("Sending push to:", to, "with title:", title);
       
       return true;
@@ -96,4 +75,4 @@ export const broadcastService = {
 
     return results;
   }
-}; 
+};

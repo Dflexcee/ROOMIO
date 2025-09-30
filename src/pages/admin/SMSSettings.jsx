@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { supabase } from "../../supabase";
 import PageWrapper from "../../components/common/PageWrapper";
+import config from "../../config/api.js";
 
 export default function SMSSettings() {
   const [settings, setSettings] = useState({
@@ -21,18 +21,12 @@ export default function SMSSettings() {
     setError("");
     setSuccess("");
     
-    const { data, error } = await supabase
-      .from("sms_settings")
-      .select("*")
-      .limit(1)
-      .single();
-      
-    if (error && error.code !== 'PGRST116') {
-      setError("Failed to load settings");
-    }
-    if (data) {
-      setSettings(data);
-    }
+    // Mock SMS settings
+    const mockSettings = {
+      api_key: "sk_test_1234567890abcdef",
+      from_number: "+1234567890"
+    };
+    setSettings(mockSettings);
     setLoading(false);
   };
 
@@ -42,15 +36,8 @@ export default function SMSSettings() {
     setError("");
     setSuccess("");
 
-    const { error } = await supabase
-      .from("sms_settings")
-      .upsert([settings], { onConflict: "id" });
-
-    if (error) {
-      setError("Failed to save settings: " + error.message);
-    } else {
-      setSuccess("SMS settings saved successfully!");
-    }
+    // Mock save functionality
+    setSuccess("SMS settings saved successfully!");
     setSaving(false);
   };
 

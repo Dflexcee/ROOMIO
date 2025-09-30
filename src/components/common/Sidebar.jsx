@@ -1,31 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
-
-const navItems = [
-  { path: "/admin/dashboard", label: "Dashboard", icon: "📊", roles: ["admin", "manager"] },
-  { path: "/admin/users", label: "Users", icon: "👥", roles: ["admin", "manager"] },
-  { path: "/admin/listings", label: "Listings", icon: "🏠", roles: ["admin", "manager"] },
-  { path: "/admin/tickets", label: "Tickets", icon: "🎫", roles: ["admin", "manager"] },
-  { path: "/admin/email-templates", label: "Email Templates", icon: "📧", roles: ["admin", "manager"] },
-  { path: "/admin/ads", label: "Ads Manager", icon: "📢", roles: ["admin", "manager"] },
-  { path: "/admin/payments", label: "Payment Settings", icon: "💰", roles: ["admin"] },
-  { path: "/admin/user-access", label: "User Access", icon: "🔐", roles: ["admin"] },
-  { path: "/admin/grant-access", label: "Grant Feature Access", icon: "🎁", roles: ["admin"] },
-  { path: "/admin/verification", label: "Agent Verification", icon: "✅", roles: ["admin"] },
-  { path: "/admin/broadcast", label: "Broadcast", icon: "📡", roles: ["admin"] },
-  { path: "/admin/analytics", label: "Analytics", icon: "📈", roles: ["admin"] },
-  { path: "/admin/blacklist", label: "Blacklist / Logs", icon: "🚫", roles: ["admin"] },
-  { path: "/admin/smtp-settings", label: "SMTP Settings", icon: "📨", roles: ["admin"] },
-  { path: "/admin/sms-settings", label: "SMS Settings", icon: "📱", roles: ["admin"] },
-  { path: "/admin/admin-manager-details", label: "Admin & Manager Details", icon: "🛡️", roles: ["admin"] },
-];
+import adminConfig from "../../config/adminConfig";
 
 export default function Sidebar() {
   const { user, loading } = useAuth();
   const location = useLocation();
 
   const role = user?.role || "";
+  const navItems = adminConfig.getNavigationItems(role);
 
   if (loading) {
     return (
@@ -46,13 +29,30 @@ export default function Sidebar() {
     <aside className="bg-gray-900 text-white w-64 min-h-screen px-4 py-6">
       <div className="flex items-center space-x-3 mb-6">
         <span className="text-2xl">🏠</span>
-        <h2 className="text-xl font-bold">Roomio Admin</h2>
+        <h2 className="text-xl font-bold">{adminConfig.ADMIN_TITLE}</h2>
       </div>
 
+      {/* Admin Status Indicator */}
+      {user && user.status && user.status !== 'active' && (
+        <div className="mb-4 p-3 bg-yellow-900 border border-yellow-600 rounded-lg">
+          <div className="flex items-center space-x-2">
+            <span className="text-yellow-400">⚠️</span>
+            <div className="text-sm">
+              <div className="text-yellow-200 font-semibold">
+                Admin Account: {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
+              </div>
+              {user.status_reason && (
+                <div className="text-yellow-300 text-xs mt-1">
+                  Reason: {user.status_reason}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <nav className="space-y-2">
-        {navItems
-          .filter((item) => item.roles.includes(role))
-          .map((item) => (
+        {navItems.map((item) => (
             <Link
               key={item.path}
               to={item.path}

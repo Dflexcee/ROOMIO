@@ -20,30 +20,49 @@ export default function ProtectedAdminRoute() {
   }, []);
 
   const checkAccess = async () => {
+    console.log('🔍 ProtectedAdminRoute: Checking access...');
     try {
       const { user } = await getCurrentUser();
+      console.log('🔍 ProtectedAdminRoute: getCurrentUser result:', user);
+      
       if (!user) {
+        console.log('❌ ProtectedAdminRoute: No user found, redirecting to login');
         setIsAllowed(false);
         return;
       }
+      
+      console.log('👤 ProtectedAdminRoute: User role:', user.role);
+      console.log('👤 ProtectedAdminRoute: User status:', user.status);
+      
+      // Check if user has admin/manager role
       if (!["admin", "manager"].includes(user.role)) {
+        console.log('❌ ProtectedAdminRoute: User does not have admin/manager role');
         setIsAllowed(false);
         return;
       }
+      
+      // For admin users, we allow access regardless of status
+      // because they need to manage the system even if their account is restricted
+      console.log('✅ ProtectedAdminRoute: Admin access granted (status ignored for admin users)');
       setIsAllowed(true);
     } catch (error) {
-      console.error("Error checking access:", error);
+      console.error("❌ ProtectedAdminRoute: Error checking access:", error);
       setIsAllowed(false);
     }
   };
 
+  console.log('🔍 ProtectedAdminRoute: isAllowed state:', isAllowed);
+
   if (isAllowed === undefined) {
+    console.log('⏳ ProtectedAdminRoute: Showing loading spinner');
     return <LoadingSpinner />;
   }
 
   if (!isAllowed) {
+    console.log('🔄 ProtectedAdminRoute: Redirecting to /admin/login');
     return <Navigate to="/admin/login" state={{ from: location.pathname }} replace />;
   }
 
+  console.log('✅ ProtectedAdminRoute: Rendering admin content');
   return <Outlet />;
 } 

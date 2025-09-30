@@ -22,6 +22,8 @@ import UserAccessManager from '../pages/admin/UserAccessManager';
 import AdminManagerDetails from '../pages/admin/AdminManagerDetails';
 import GrantFeatureAccess from '../pages/admin/GrantFeatureAccess';
 import AgentVerification from '../pages/admin/AgentVerification';
+import VerificationManagement from '../pages/admin/VerificationManagement';
+import CurrencySettings from '../pages/admin/CurrencySettings';
 
 const AdminRoutes = () => {
   return (
@@ -51,7 +53,9 @@ const AdminRoutes = () => {
           <Route path="user-access" element={<UserAccessManager />} />
           <Route path="grant-access" element={<GrantFeatureAccess />} />
           <Route path="admin-manager-details" element={<AdminManagerDetails />} />
-          <Route path="verification" element={<AgentVerification />} />
+          <Route path="verification" element={<VerificationManagement />} />
+          <Route path="agent-verification" element={<AgentVerification />} />
+          <Route path="currency-settings" element={<CurrencySettings />} />
         </Route>
       </Route>
 

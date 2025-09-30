@@ -1,23 +1,32 @@
 import React, { useEffect } from "react";
-import { supabase } from "../../supabase";
+import config from "../../config/api";
 
 export default function Logout() {
   useEffect(() => {
     const performLogout = async () => {
       try {
-        // Clear any stored auth state
-        await supabase.auth.signOut();
+        // Call the actual logout API
+        const response = await fetch(config.getUrl(config.endpoints.auth.logout), {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
         
         // Clear any localStorage items that might contain auth state
         localStorage.removeItem('supabase.auth.token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('auth_token');
+        sessionStorage.clear();
         
-        // Use a more reliable way to redirect and clear state
-        setTimeout(() => {
-          window.location.replace('/admin/login');
-        }, 0);
+        // Redirect to admin login
+        window.location.replace('/admin/login');
       } catch (error) {
         console.error("Logout failed:", error);
-        // Still redirect to login on error
+        // Clear storage and redirect anyway
+        localStorage.clear();
+        sessionStorage.clear();
         window.location.replace('/admin/login');
       }
     };

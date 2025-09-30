@@ -56,7 +56,7 @@ export default function AppRoutes() {
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/find-roommate" element={<ProtectedRoute><FindRoommate /></ProtectedRoute>} />
       <Route path="/find-room" element={<ProtectedRoute><FindRoom /></ProtectedRoute>} />
-      <Route path="/post-room" element={<PostRoom />} />
+      <Route path="/post-room" element={<ProtectedRoute><PostRoom /></ProtectedRoute>} />
       <Route path="/scam-board" element={<ScamBoard />} />
       <Route path="/community" element={<CommunityFeed />} />
       <Route path="/help-center" element={<ProtectedRoute><HelpCenter /></ProtectedRoute>} />

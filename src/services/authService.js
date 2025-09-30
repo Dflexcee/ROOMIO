@@ -51,17 +51,33 @@ export async function logout() {
 // Get current user
 export async function getCurrentUser() {
   try {
-    console.log('getCurrentUser: Making request to:', config.getUrl(config.endpoints.auth.me));
+    console.log('🔍 authService.getCurrentUser: Making request to:', config.getUrl(config.endpoints.auth.me));
     const res = await fetch(config.getUrl(config.endpoints.auth.me), {
       method: 'GET',
       credentials: 'include'
     })
-    console.log('getCurrentUser: Response status:', res.status);
+    console.log('🔍 authService.getCurrentUser: Response status:', res.status);
+    console.log('🔍 authService.getCurrentUser: Response ok:', res.ok);
+    
+    if (!res.ok) {
+      console.log('❌ authService.getCurrentUser: Response not ok, status:', res.status);
+      const text = await res.text();
+      console.log('❌ authService.getCurrentUser: Response text:', text);
+      return { user: null, error: new Error(`HTTP ${res.status}`) };
+    }
+    
     const data = await res.json()
-    console.log('getCurrentUser: Response data:', data);
+    console.log('🔍 authService.getCurrentUser: Response data:', data);
+    
+    if (data.user) {
+      console.log('✅ authService.getCurrentUser: User found:', data.user.email, 'Role:', data.user.role);
+    } else {
+      console.log('❌ authService.getCurrentUser: No user in response');
+    }
+    
     return { user: data?.user || null, error: null }
   } catch (e) {
-    console.error('getCurrentUser: Error:', e);
+    console.error('❌ authService.getCurrentUser: Error:', e);
     return { user: null, error: e }
   }
 } 

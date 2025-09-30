@@ -9,15 +9,34 @@ export function AuthProvider({ children }) {
 
   const refreshUser = async () => {
     try {
-      const { user, error } = await getCurrentUser();
+      console.log('AuthContext: Refreshing user data...');
+      const { user: freshUser, error } = await getCurrentUser();
       if (error) {
-        console.error('Auth error:', error);
+        console.error('Auth refresh error:', error);
         setUser(null);
       } else {
-        setUser(user ?? null);
+        // Check if user status changed
+        if (user && freshUser) {
+          const statusChanged = user.status !== freshUser.status;
+          const verificationChanged = user.verification_status !== freshUser.verification_status;
+
+          if (statusChanged) {
+            console.log('AuthContext: User status changed from', user.status, 'to', freshUser.status);
+          }
+          if (verificationChanged) {
+            console.log('AuthContext: User verification changed from', user.verification_status, 'to', freshUser.verification_status);
+          }
+
+          // If user was suspended/banned/deactivated, clear session and force reload
+          if (freshUser.status === 'banned' || freshUser.status === 'suspended' || freshUser.status === 'inactive') {
+            console.warn('AuthContext: User account restricted, updating state');
+          }
+        }
+
+        setUser(freshUser ?? null);
       }
     } catch (error) {
-      console.error('Auth error:', error);
+      console.error('Auth refresh error:', error);
       setUser(null);
     }
   };

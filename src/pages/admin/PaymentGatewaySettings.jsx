@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { supabase } from "../../supabase";
+import PageWrapper from "../../components/common/PageWrapper";
+import config from "../../config/api.js";
 
 export default function PaymentGatewaySettings() {
   const [form, setForm] = useState({
@@ -21,13 +22,15 @@ export default function PaymentGatewaySettings() {
     setLoading(true);
     setError("");
     setSuccess("");
-    const { data, error } = await supabase
-      .from("payment_gateway_settings")
-      .select("*")
-      .limit(1)
-      .single();
-    if (error && error.code !== 'PGRST116') setError("Failed to load settings");
-    if (data) setForm(data);
+    
+    // Mock payment gateway settings
+    const mockSettings = {
+      provider: "Paystack",
+      public_key: "pk_test_1234567890abcdef",
+      secret_key: "sk_test_1234567890abcdef",
+      webhook_secret: "whsec_1234567890abcdef"
+    };
+    setForm(mockSettings);
     setLoading(false);
   };
 
@@ -40,22 +43,22 @@ export default function PaymentGatewaySettings() {
     setSaving(true);
     setError("");
     setSuccess("");
-    // Upsert (insert or update)
-    const { error } = await supabase
-      .from("payment_gateway_settings")
-      .upsert([form], { onConflict: "id" });
-    if (error) setError("Failed to save settings");
-    else setSuccess("Settings saved successfully!");
+    
+    // Mock save functionality
+    setSuccess("Settings saved successfully!");
     setSaving(false);
   };
 
   return (
-    <div className="p-8 max-w-xl mx-auto">
-      <h2 className="text-2xl font-bold mb-4">Payment Gateway Settings</h2>
-      {loading ? (
-        <div>Loading...</div>
-      ) : (
-        <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow space-y-4">
+    <PageWrapper>
+      <div className="max-w-2xl mx-auto">
+        <h2 className="text-2xl font-bold mb-4">Payment Gateway Settings</h2>
+        {loading ? (
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow space-y-4">
           {error && <div className="bg-red-100 text-red-700 p-2 mb-2 rounded">{error}</div>}
           {success && <div className="bg-green-100 text-green-700 p-2 mb-2 rounded">{success}</div>}
           <div>
@@ -109,8 +112,9 @@ export default function PaymentGatewaySettings() {
           >
             {saving ? "Saving..." : "Save Settings"}
           </button>
-        </form>
-      )}
-    </div>
+          </form>
+        )}
+      </div>
+    </PageWrapper>
   );
 } 

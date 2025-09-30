@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { supabase } from "../../supabase";
 import PageWrapper from "../../components/common/PageWrapper";
+import config from "../../config/api.js";
 
 export default function Tickets() {
   const [tickets, setTickets] = useState([]);
@@ -19,36 +19,16 @@ export default function Tickets() {
     setLoading(true);
     setError("");
     try {
-      // Get all tickets with their responses
-      const { data, error } = await supabase
-        .from('tickets')
-        .select(`
-          *,
-          ticket_responses(*)
-        `)
-        .order('created_at', { ascending: false });
+      const response = await fetch(config.getUrl(config.endpoints.admin.tickets), {
+        credentials: 'include'
+      });
+      const data = await response.json();
 
-      if (error) {
-        console.error("Error fetching tickets:", error);
-        setError("Error loading tickets. Please try again.");
+      if (response.ok) {
+        setTickets(data.tickets || []);
       } else {
-        // Get user details for each ticket
-        const ticketsWithUsers = await Promise.all(
-          (data || []).map(async (ticket) => {
-            const { data: userData } = await supabase
-              .from('users')
-              .select('*')
-              .eq('id', ticket.user_id)
-              .single();
-            
-            return {
-              ...ticket,
-              users: userData || { full_name: 'Unknown User', email: 'No email' }
-            };
-          })
-        );
-        
-        setTickets(ticketsWithUsers);
+        console.error("Error fetching tickets:", data.error);
+        setError("Error loading tickets: " + (data.error || 'Unknown error'));
       }
     } catch (err) {
       console.error("Unexpected error:", err);
@@ -64,22 +44,28 @@ export default function Tickets() {
     setError("");
     
     try {
-      const { error } = await supabase
-        .from('ticket_responses')
-        .insert([{
+      const response = await fetch(config.getUrl(config.endpoints.admin.tickets), {
+        method: 'POST',
+        headers: config.getAuthHeaders(),
+        credentials: 'include',
+        body: JSON.stringify({
           ticket_id: ticketId,
-          message: reply,
-          is_admin: true,
-          created_at: new Date().toISOString()
-        }]);
+          message: reply
+        })
+      });
 
-      if (error) throw error;
+      const data = await response.json();
 
-      setReply("");
-      fetchTickets();
+      if (response.ok) {
+        setReply("");
+        fetchTickets();
+      } else {
+        console.error("Error sending reply:", data.error);
+        setError("Failed to send reply: " + (data.error || 'Unknown error'));
+      }
     } catch (err) {
       console.error("Error sending reply:", err);
-      setError(err.message || "Failed to send reply. Please try again.");
+      setError("Failed to send reply. Please try again.");
     } finally {
       setReplying(false);
     }
@@ -88,16 +74,27 @@ export default function Tickets() {
   const handleResolve = async (ticketId) => {
     setError("");
     try {
-      const { error } = await supabase
-        .from('tickets')
-        .update({ status: 'resolved' })
-        .eq('id', ticketId);
+      const response = await fetch(config.getUrl(config.endpoints.admin.tickets), {
+        method: 'PUT',
+        headers: config.getAuthHeaders(),
+        credentials: 'include',
+        body: JSON.stringify({
+          ticket_id: ticketId,
+          status: 'resolved'
+        })
+      });
 
-      if (error) throw error;
-      fetchTickets();
+      const data = await response.json();
+
+      if (response.ok) {
+        fetchTickets();
+      } else {
+        console.error("Error resolving ticket:", data.error);
+        setError("Failed to resolve ticket: " + (data.error || 'Unknown error'));
+      }
     } catch (err) {
       console.error("Error resolving ticket:", err);
-      setError(err.message || "Failed to resolve ticket. Please try again.");
+      setError("Failed to resolve ticket. Please try again.");
     }
   };
 
@@ -105,27 +102,27 @@ export default function Tickets() {
     setDeleting(true);
     setError("");
     try {
-      // First delete all responses
-      const { error: responsesError } = await supabase
-        .from('ticket_responses')
-        .delete()
-        .eq('ticket_id', ticketId);
+      const response = await fetch(config.getUrl(config.endpoints.admin.tickets), {
+        method: 'DELETE',
+        headers: config.getAuthHeaders(),
+        credentials: 'include',
+        body: JSON.stringify({
+          ticket_id: ticketId
+        })
+      });
 
-      if (responsesError) throw responsesError;
+      const data = await response.json();
 
-      // Then delete the ticket
-      const { error: ticketError } = await supabase
-        .from('tickets')
-        .delete()
-        .eq('id', ticketId);
-
-      if (ticketError) throw ticketError;
-
-      setSelectedTicket(null);
-      fetchTickets();
+      if (response.ok) {
+        setSelectedTicket(null);
+        fetchTickets();
+      } else {
+        console.error("Error deleting ticket:", data.error);
+        setError("Failed to delete ticket: " + (data.error || 'Unknown error'));
+      }
     } catch (err) {
       console.error("Error deleting ticket:", err);
-      setError(err.message || "Failed to delete ticket. Please try again.");
+      setError("Failed to delete ticket. Please try again.");
     } finally {
       setDeleting(false);
     }
@@ -135,128 +132,130 @@ export default function Tickets() {
     <PageWrapper>
       <h2 className="text-2xl font-bold mb-4">📨 Support Tickets</h2>
       {loading ? (
-        <div className="text-center text-gray-500">Loading tickets...</div>
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
       ) : error ? (
-        <div className="text-center text-red-600">{error}</div>
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          {error}
+        </div>
       ) : (
-        <div className="flex gap-6">
-          {/* Sidebar: Ticket List */}
-          <div className="w-1/3 space-y-2 overflow-y-auto h-[80vh]">
-            {tickets.length === 0 ? (
-              <p className="text-sm text-gray-500">No tickets submitted yet.</p>
-            ) : (
-              tickets.map((ticket) => (
-                <div
-                  key={ticket.id}
-                  onClick={() => setSelectedTicket(ticket)}
-                  className={`p-4 rounded shadow cursor-pointer ${
-                    selectedTicket?.id === ticket.id ? "bg-blue-100" : "bg-white"
-                  }`}
-                >
-                  <h4 className="font-semibold text-sm">{ticket.subject}</h4>
-                  <p className="text-xs text-gray-600">
-                    {ticket.users?.full_name || "Unknown User"} – {ticket.status}
-                  </p>
-                  <p className="text-xs text-gray-400">
-                    {new Date(ticket.created_at).toLocaleString()}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    Priority: {ticket.priority || "medium"}
-                  </p>
-                  {ticket.users?.email && (
-                    <p className="text-xs text-gray-500">
-                      Email: {ticket.users.email}
+        <div className="space-y-4">
+          {tickets.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              No tickets found.
+            </div>
+          ) : (
+            tickets.map((ticket) => (
+              <div key={ticket.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <h3 className="font-semibold text-lg">{ticket.subject}</h3>
+                    <p className="text-gray-600 text-sm">
+                      From: {ticket.users?.full_name || 'Unknown User'} ({ticket.users?.email || 'No email'})
                     </p>
-                  )}
+                    <p className="text-gray-500 text-xs">
+                      {new Date(ticket.created_at).toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="flex space-x-2">
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${
+                      ticket.status === 'open' ? 'bg-yellow-100 text-yellow-800' :
+                      ticket.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
+                      ticket.status === 'resolved' ? 'bg-green-100 text-green-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {ticket.status}
+                    </span>
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${
+                      ticket.priority === 'urgent' ? 'bg-red-100 text-red-800' :
+                      ticket.priority === 'high' ? 'bg-orange-100 text-orange-800' :
+                      ticket.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {ticket.priority}
+                    </span>
+                  </div>
                 </div>
-              ))
-            )}
-          </div>
-
-          {/* Main: Ticket Details */}
-          <div className="flex-1">
-            {selectedTicket ? (
-              <div className="bg-white dark:bg-gray-900 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-                <h3 className="text-xl font-bold mb-2">{selectedTicket.subject}</h3>
+                
                 <div className="mb-4">
-                  <p className="text-sm text-gray-600 dark:text-gray-300">
-                    From: {selectedTicket.users?.full_name || "Unknown User"}
-                  </p>
-                  {selectedTicket.users?.email && (
-                    <p className="text-sm text-gray-600 dark:text-gray-300">
-                      Email: {selectedTicket.users.email}
-                    </p>
-                  )}
-                  {selectedTicket.users?.phone && (
-                    <p className="text-sm text-gray-600 dark:text-gray-300">
-                      Phone: {selectedTicket.users.phone}
-                    </p>
-                  )}
+                  <p className="text-gray-700">{ticket.description}</p>
                 </div>
-                <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-                  Priority: {selectedTicket.priority || "medium"} | Status: {selectedTicket.status}
-                </p>
-                <div className="space-y-4 mb-6">
-                  {selectedTicket.ticket_responses && selectedTicket.ticket_responses.length > 0 ? (
-                    selectedTicket.ticket_responses
-                      .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
-                      .map((response) => (
-                        <div
-                          key={response.id}
-                          className={`p-4 rounded-lg ${
-                            response.is_admin
-                              ? "bg-blue-50 dark:bg-blue-900/30"
-                              : "bg-gray-50 dark:bg-gray-800"
-                          }`}
-                        >
-                          <p className="text-sm text-gray-600 dark:text-gray-300">{response.message}</p>
-                          <p className="text-xs text-gray-500 mt-2">
-                            {response.is_admin ? "Admin" : "User"} • {new Date(response.created_at).toLocaleString()}
+
+                {ticket.ticket_responses && ticket.ticket_responses.length > 0 && (
+                  <div className="mb-4">
+                    <h4 className="font-medium text-sm text-gray-600 mb-2">Responses:</h4>
+                    <div className="space-y-2">
+                      {ticket.ticket_responses.map((response, index) => (
+                        <div key={index} className="bg-gray-50 p-3 rounded">
+                          <p className="text-sm">{response.message}</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {new Date(response.created_at).toLocaleString()}
                           </p>
                         </div>
-                      ))
-                  ) : (
-                    <p className="text-gray-400">No responses yet.</p>
-                  )}
-                </div>
-                {selectedTicket.status !== "resolved" && (
-                  <div className="mt-6">
-                    <textarea
-                      value={reply}
-                      onChange={(e) => setReply(e.target.value)}
-                      placeholder="Type your reply..."
-                      className="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                      rows="4"
-                    ></textarea>
-                    <button
-                      onClick={() => handleReply(selectedTicket.id)}
-                      disabled={!reply.trim() || replying}
-                      className="mt-4 bg-gradient-to-r from-pink-500 to-yellow-500 dark:from-blue-700 dark:to-purple-700 text-white px-6 py-2 rounded-full shadow-lg hover:scale-105 transition-all text-lg font-semibold disabled:opacity-60"
-                    >
-                      {replying ? "Sending..." : "Send Reply"}
-                    </button>
-                    <button
-                      onClick={() => handleResolve(selectedTicket.id)}
-                      className="ml-4 mt-4 bg-green-600 text-white px-4 py-2 rounded-full shadow hover:bg-green-700"
-                    >
-                      Mark as Resolved
-                    </button>
+                      ))}
+                    </div>
                   </div>
                 )}
-                <button
-                  onClick={() => handleDelete(selectedTicket.id)}
-                  disabled={deleting}
-                  className="mt-6 bg-red-600 text-white px-4 py-2 rounded-full shadow hover:bg-red-700"
-                >
-                  {deleting ? "Deleting..." : "Delete Ticket"}
-                </button>
+
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => setSelectedTicket(ticket)}
+                    className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                  >
+                    Reply
+                  </button>
+                  {ticket.status !== 'resolved' && (
+                    <button
+                      onClick={() => handleResolve(ticket.id)}
+                      className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700"
+                    >
+                      Resolve
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleDelete(ticket.id)}
+                    disabled={deleting}
+                    className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700 disabled:opacity-50"
+                  >
+                    {deleting ? 'Deleting...' : 'Delete'}
+                  </button>
+                </div>
               </div>
-            ) : (
-              <p className="text-gray-500 mt-10">Select a ticket to view messages.</p>
-            )}
+            ))
+          )}
+        </div>
+      )}
+
+      {/* Reply Modal */}
+      {selectedTicket && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4">Reply to Ticket</h3>
+            <textarea
+              value={reply}
+              onChange={(e) => setReply(e.target.value)}
+              placeholder="Type your reply here..."
+              className="w-full h-32 p-3 border border-gray-300 rounded-lg resize-none"
+            />
+            <div className="flex justify-end space-x-2 mt-4">
+              <button
+                onClick={() => setSelectedTicket(null)}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleReply(selectedTicket.id)}
+                disabled={replying || !reply.trim()}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+              >
+                {replying ? 'Sending...' : 'Send Reply'}
+              </button>
+            </div>
           </div>
         </div>
       )}
     </PageWrapper>
   );
-} 
+}

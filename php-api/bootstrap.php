@@ -1,15 +1,8 @@
 <?php
 
-$allowedOrigins = [
-    'http://localhost:5173',
-    'http://localhost:5174',
-    'http://localhost:5175',
-    'http://localhost:5176',
-    'http://127.0.0.1:5173',
-    'http://127.0.0.1:5174',
-    'http://127.0.0.1:5175',
-    'http://127.0.0.1:5176',
-];
+require_once __DIR__ . '/lib/Config.php';
+
+$allowedOrigins = Config::getCorsOrigins();
 
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 if ($origin && in_array($origin, $allowedOrigins, true)) {
@@ -43,9 +36,9 @@ if (session_status() === PHP_SESSION_NONE) {
         'lifetime' => 0,
         'path' => '/',
         'domain' => '',
-        'secure' => false, // Always false for local development
-        'httponly' => false, // Allow JavaScript access for debugging
-        'samesite' => 'Lax', // Use Lax for better compatibility
+        'secure' => Config::get('SESSION_SECURE', 'false') === 'true',
+        'httponly' => Config::get('SESSION_HTTPONLY', 'false') === 'true',
+        'samesite' => Config::get('SESSION_SAMESITE', 'Lax'),
     ];
     if (PHP_VERSION_ID >= 70300) {
         session_set_cookie_params($cookieParams);
@@ -60,6 +53,10 @@ if (session_status() === PHP_SESSION_NONE) {
         );
     }
     session_start();
+    
+    // Debug session info
+    error_log("Session started: " . session_id());
+    error_log("Session user_id: " . ($_SESSION['user_id'] ?? 'not set'));
 }
 
 function json_response($data, int $status = 200): void {
@@ -73,4 +70,7 @@ function read_json_body(): array {
     if (!$raw) { return []; }
     $parsed = json_decode($raw, true);
     return is_array($parsed) ? $parsed : [];
-} 
+}
+
+// Load user status validation middleware
+require_once __DIR__ . '/middleware/check-user-status.php'; 

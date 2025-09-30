@@ -1,35 +1,56 @@
 <?php
-require_once '../../config.php';
-require_once '../../bootstrap.php';
+// Admin API for managing verification requests
+// This handles fetching, approving, and rejecting verification requests
 
-// Check if user is logged in and is admin
-if (!isset(require_auth();SESSION['user_id'])) {
-    json_response(['error' => 'Authentication required'], 401);
+// CORS headers
+$allowed_origins = ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'];
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+if (in_array($origin, $allowed_origins)) {
+    header('Access-Control-Allow-Origin: ' . $origin);
+} else {
+    header('Access-Control-Allow-Origin: http://localhost:5174'); // Fallback
+}
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type');
+header('Access-Control-Allow-Credentials: true');
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
     exit;
 }
-require_admin();
 
-if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-    json_response(['error' => 'Method not allowed'], 405);
-}
+header('Content-Type: application/json');
 
 try {
-    $stmt = $pdo->prepare("
-        SELECT id, full_name, email, role, verification_status, verification_id_url, verification_submitted_at
-        FROM users 
-        WHERE role IN ('agent', 'landlord') 
-        AND verification_status = 'pending'
-        ORDER BY verification_submitted_at DESC
-    ");
-    $stmt->execute();
-    $requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $pdo = new PDO('mysql:host=127.0.0.1;dbname=roomio;charset=utf8mb4', 'ruser', 'cord3001');
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     
-    json_response([
-        'success' => true,
-        'requests' => $requests
-    ]);
+    if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+        // Get all verification requests
+        $sql = "SELECT 
+                    vr.*,
+                    u.email as user_email,
+                    u.full_name as user_full_name,
+                    admin.full_name as reviewed_by_name
+                FROM verification_requests vr
+                LEFT JOIN users u ON vr.user_id = u.id
+                LEFT JOIN users admin ON vr.reviewed_by = admin.id
+                ORDER BY vr.created_at DESC";
+        
+        $stmt = $pdo->query($sql);
+        $requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        echo json_encode([
+            'success' => true,
+            'requests' => $requests
+        ]);
+        
+    } else {
+        echo json_encode(['success' => false, 'error' => 'Method not allowed']);
+    }
     
-} catch (PDOException $e) {
-    json_response(['error' => 'Database error: ' . $e->getMessage()], 500);
+} catch (Exception $e) {
+    error_log("Verification Requests API Error: " . $e->getMessage());
+    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
 }
 ?>

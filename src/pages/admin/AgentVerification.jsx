@@ -16,9 +16,7 @@ export default function AgentVerification() {
     setError(null);
     
     try {
-      const response = await fetch(config.getUrl('/admin/verification-requests.php'), {
-        credentials: 'include'
-      });
+      const response = await fetch(config.getUrl('/admin/verification-requests.php'));
       const data = await response.json();
       
       if (response.ok) {
@@ -35,12 +33,14 @@ export default function AgentVerification() {
 
   const handleApprove = async (id) => {
     try {
-      const response = await fetch(config.getUrl('/admin/verify-user.php'), {
+      const response = await fetch(config.getUrl('/admin/verification-approve.php'), {
         method: 'POST',
-        headers: config.getAuthHeaders(),
-        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           user_id: id,
+          action: 'approve',
           status: 'verified'
         })
       });
@@ -58,12 +58,14 @@ export default function AgentVerification() {
 
   const handleReject = async (id) => {
     try {
-      const response = await fetch(config.getUrl('/admin/verify-user.php'), {
+      const response = await fetch(config.getUrl('/admin/verification-approve.php'), {
         method: 'POST',
-        headers: config.getAuthHeaders(),
-        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           user_id: id,
+          action: 'reject',
           status: 'rejected'
         })
       });

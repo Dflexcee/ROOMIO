@@ -24,13 +24,22 @@ export default function EditRoom() {
     setLoading(true);
     setError("");
     try {
-      const { data, error } = await supabase
-        .from("rooms")
-        .select("*")
-        .eq("id", id)
-        .single();
-      if (error) throw error;
-      setRoom(data);
+      const response = await fetch(config.getUrl(`/rooms/get.php?id=${id}`), {
+        method: 'GET',
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch room');
+      }
+      
+      const data = await response.json();
+      
+      if (data.success && data.room) {
+        setRoom(data.room);
+      } else {
+        throw new Error(data.error || 'Room not found');
+      }
     } catch (err) {
       setError("Failed to load room. Please try again.");
     } finally {
@@ -58,7 +67,7 @@ export default function EditRoom() {
     setUploading(true);
     let updatedImages = room.images ? [...room.images] : [];
     try {
-      // Upload new images to Supabase Storage
+      // Upload new images using PHP API
       for (let i = 0; i < newImages.length; i++) {
         const file = newImages[i];
         if (!file.type.startsWith("image/")) {
@@ -73,32 +82,63 @@ export default function EditRoom() {
           setLoading(false);
           return;
         }
-        const filename = `room-${id}-${Date.now()}-${file.name}`;
-        const { error: uploadError } = await supabase.storage.from("room-images").upload(filename, file, { upsert: true });
-        if (uploadError) {
-          setError("Failed to upload one or more images: " + uploadError.message);
+        
+        const formData = new FormData();
+        formData.append("image", file);
+        
+        try {
+          const uploadResponse = await fetch(config.getUrl(config.endpoints.upload.roomImage), {
+            method: "POST",
+            credentials: "include",
+            body: formData
+          });
+          
+          const uploadData = await uploadResponse.json();
+          
+          if (!uploadResponse.ok) {
+            setError("Failed to upload image: " + uploadData.error);
+            setUploading(false);
+            setLoading(false);
+            return;
+          }
+          
+          updatedImages.push(uploadData.image_url);
+        } catch (error) {
+          setError("Failed to upload image: " + error.message);
           setUploading(false);
           setLoading(false);
           return;
         }
-        const { data: image } = supabase.storage.from("room-images").getPublicUrl(filename);
-        updatedImages.push(image.publicUrl);
       }
-      // Update room in DB
-      const { error } = await supabase
-        .from("rooms")
-        .update({
-          title: room.title,
-          rent: room.rent,
-          location: room.location,
-          description: room.description,
-          status: room.status,
-          images: updatedImages,
+      
+      // Update room using PHP API
+      const updateResponse = await fetch(config.getUrl(config.endpoints.rooms.update), {
+        method: "PUT",
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          id: room.id,
+          ...room,
+          images: updatedImages
         })
-        .eq("id", id);
-      if (error) throw error;
-      setSuccess("Room updated successfully!");
-      setTimeout(() => navigate("/my-rooms"), 1200);
+      });
+      
+      const updateData = await updateResponse.json();
+      
+      if (!updateResponse.ok) {
+        setError("Update failed: " + (updateData.error || 'Unknown error'));
+        setUploading(false);
+        setLoading(false);
+        return;
+      }
+
+      // Room update was successful
+      if (updateData.success) {
+        setSuccess("Room updated successfully!");
+        setTimeout(() => navigate("/my-rooms"), 1200);
+      }
     } catch (err) {
       setError("Failed to update room. Please try again.");
     } finally {

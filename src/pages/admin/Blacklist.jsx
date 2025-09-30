@@ -19,21 +19,13 @@ export default function Blacklist() {
     setError(null);
     
     try {
-      // Fetch banned users
-      const usersResponse = await fetch(config.getUrl('/admin/banned-users.php'), {
-        credentials: 'include'
-      });
-      const usersData = await usersResponse.json();
+      // Fetch banned users and logs from single endpoint
+      const response = await fetch(config.getUrl('/admin/banned-users.php'));
+      const data = await response.json();
       
-      // Fetch system logs
-      const logsResponse = await fetch(config.getUrl('/admin/system-logs.php'), {
-        credentials: 'include'
-      });
-      const logsData = await logsResponse.json();
-      
-      if (usersResponse.ok && logsResponse.ok) {
-        setBannedUsers(usersData.users || []);
-        setLogs(logsData.logs || []);
+      if (response.ok) {
+        setBannedUsers(data.banned_users || []);
+        setLogs(data.system_logs || []);
       } else {
         setError("Failed to fetch data");
       }
@@ -50,8 +42,9 @@ export default function Blacklist() {
     try {
       const response = await fetch(config.getUrl('/admin/ban-user.php'), {
         method: 'POST',
-        headers: config.getAuthHeaders(),
-        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           email: emailToBan,
           reason: 'Manual ban by admin'
