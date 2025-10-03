@@ -9,7 +9,9 @@
       "Bash(python:*)",
       "Bash(curl -s \"http://localhost/roomio/php-api/public/auth/me.php\" -H \"Cookie: PHPSESSID=test\")",
       "Bash(curl:*)",
-      "Read(//c/xampp/**)"
+      "Read(//c/xampp/**)",
+      "Bash(./php/php.exe test-smtp-direct.php)",
+      "Bash(./php/php.exe htdocs/roomio/test-smtp-direct.php)"
     ],
     "deny": [],
     "ask": []

@@ -30,12 +30,14 @@ class EmailSender {
             $stmt = $this->pdo->query("SELECT * FROM smtp_settings ORDER BY id DESC LIMIT 1");
             $settings = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
 
-            // Normalize column names (table has 'host' not 'smtp_host')
+            // Normalize column names (database has 'host' not 'smtp_host')
             if (!empty($settings['host'])) {
                 $settings['smtp_host'] = $settings['host'];
                 $settings['smtp_port'] = $settings['port'];
                 $settings['smtp_username'] = $settings['username'];
                 $settings['smtp_password'] = $settings['password'];
+                $settings['encryption'] = $settings['encryption'] ?? 'ssl'; // Default to SSL for port 465
+                $settings['from_name'] = $settings['from_name'] ?? 'Roomio';
             }
 
             if (!$settings || empty($settings['smtp_host'])) {
@@ -67,7 +69,7 @@ class EmailSender {
             if (empty($settings['smtp_host'])) {
                 require_once __DIR__ . '/Config.php';
                 $settings['smtp_host'] = Config::get('SMTP_HOST');
-                $settings['smtp_port'] = Config::get('SMTP_PORT');
+                $settings['smtp_port'] = Config::get('SMTP_PORT', 587);
                 $settings['smtp_username'] = Config::get('SMTP_USERNAME');
                 $settings['smtp_password'] = Config::get('SMTP_PASSWORD');
                 $settings['from_email'] = Config::get('SMTP_FROM_EMAIL');
@@ -75,8 +77,8 @@ class EmailSender {
                 $settings['encryption'] = Config::get('SMTP_ENCRYPTION', 'tls');
             }
 
-            if (empty($settings['smtp_host'])) {
-                throw new Exception('SMTP settings not configured');
+            if (empty($settings['smtp_host']) || empty($settings['smtp_username'])) {
+                throw new Exception('SMTP settings not configured. Please configure SMTP at /admin/smtp-settings');
             }
 
             // Normalize types

@@ -3,8 +3,8 @@ import { useAuth } from '../contexts/AuthContext';
 import Navbar from '../components/common/Navbar';
 import DarkModeToggle from '../components/common/DarkModeToggle';
 import config from '../config/api';
+import VerificationBlockModal from '../components/common/VerificationBlockModal';
 import VerificationForm from '../components/user/VerificationForm';
-import VerificationRequiredModal from '../components/common/VerificationRequiredModal';
 
 export default function PostRoom() {
   const { user } = useAuth();
@@ -21,85 +21,72 @@ export default function PostRoom() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [verificationStatus, setVerificationStatus] = useState(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [isBlocked, setIsBlocked] = useState(false);
   const [showVerificationForm, setShowVerificationForm] = useState(false);
-  const [showVerificationModal, setShowVerificationModal] = useState(false);
-  const [verificationStatus, setVerificationStatus] = useState('unverified');
-  const [verificationMessage, setVerificationMessage] = useState('');
-  const [canPost, setCanPost] = useState(true);
-  const [postingRestrictionReason, setPostingRestrictionReason] = useState('');
 
   useEffect(() => {
     if (user) {
-      checkVerificationStatus();
-      checkAccountStatus();
-      checkPostingAccess();
+      checkVerificationAndAccess();
     }
   }, [user]);
 
-  // Do NOT auto-block UI; rely on backend response to enforce verification
-  useEffect(() => {
-    // Keep status indicators only
-  }, [user, verificationStatus]);
+  const checkVerificationAndAccess = async () => {
+    if (!user) return;
 
-  const checkAccountStatus = () => {
-    // Check if user account is banned, suspended, or inactive
-    if (user.status === 'banned' || user.status === 'suspended' || user.status === 'inactive') {
-      console.log('User account status blocked:', user.status);
-      // UserStatusCheck component will handle showing the full-screen message
-      return false;
-    }
-    return true;
-  };
-
-  const checkPostingAccess = () => {
-    if (user && user.can_post_rooms === 0) {
-      setCanPost(false);
-      setPostingRestrictionReason(user.posting_suspended_reason || 'You do not have permission to post rooms');
-    } else {
-      setCanPost(true);
-      setPostingRestrictionReason('');
-    }
-  };
-
-  const checkVerificationStatus = async () => {
-    try {
-      // Check user's verification status from the database
-      if (user) {
-        // First try to get from user object
-        setVerificationStatus(user.verification_status || 'unverified');
-        setVerificationMessage(user.status_reason || '');
-
-        // Then try to fetch from API for more detailed info
-        try {
-          const response = await fetch(config.getUrl(config.endpoints.verification.status), {
-            method: 'GET',
-            credentials: 'include'
-          });
-          const data = await response.json();
-
-          if (response.ok && data.success) {
-            setVerificationStatus(data.status);
-            setVerificationMessage(data.message || user.status_reason || '');
-          }
-        } catch (apiError) {
-          console.log('API not available, using user data');
-        }
-      }
-    } catch (error) {
-      console.error('Error checking verification status:', error);
-      setVerificationStatus('unverified');
-    }
-  };
-
-  const handleSubmit = async () => {
-    // Check posting access FIRST
-    if (!canPost) {
-      setError(postingRestrictionReason);
+    // Admins and managers bypass verification
+    if (user.role === 'admin' || user.role === 'manager') {
+      setIsBlocked(false);
       return;
     }
 
-    // Let backend enforce verification; we'll react to 403/VERIFICATION_REQUIRED
+    try {
+      // Fetch user data to get verification status
+      const response = await fetch(config.getUrl(config.endpoints.auth.me), {
+        credentials: 'include'
+      });
 
+      if (response.ok) {
+        const data = await response.json();
+        const userData = data.user || data;
+
+        // Check if user can post rooms
+        if (userData.can_post_rooms === 0) {
+          setIsBlocked(true);
+
+          // Determine verification status
+          const status = userData.verification_status || 'unverified';
+          setVerificationStatus(status);
+
+          if (status === 'rejected') {
+            setRejectionReason(userData.rejection_reason || 'Your verification was rejected. Please submit a new verification.');
+          }
+        } else {
+          setIsBlocked(false);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking verification:', error);
+      // If user object says they can't post, block them
+      if (user.can_post_rooms === 0) {
+        setIsBlocked(true);
+        setVerificationStatus(user.verification_status || 'unverified');
+      }
+    }
+  };
+
+  const handleStartVerification = () => {
+    setShowVerificationForm(true);
+  };
+
+  const handleVerificationSubmitted = () => {
+    setShowVerificationForm(false);
+    setVerificationStatus('pending');
+    checkVerificationAndAccess();
+  };
+
+  const handleSubmit = async () => {
     setError("");
     setSubmitting(true);
     setUploadProgress(0);
@@ -148,15 +135,7 @@ export default function PostRoom() {
         });
         setImages([]);
       } else {
-        // If verification required, open modal
-        if (response.status === 403 && (data.status_code === 'VERIFICATION_REQUIRED' || (data.error||'').toLowerCase().includes('verify'))) {
-          setShowVerificationModal(true);
-          setVerificationMessage(data.error || 'Verification required');
-        } else if (response.status === 403 && data.status_code === 'POSTING_RESTRICTED') {
-          setError(data.reason || data.error || 'Posting restricted');
-        } else {
-          setError(data.error || 'Failed to post room');
-        }
+        setError(data.error || 'Failed to post room');
       }
     } catch (err) {
       setError('Network error. Please try again.');
@@ -165,6 +144,44 @@ export default function PostRoom() {
       setUploadProgress(0);
     }
   };
+
+  // Show blocking modal if user is not verified
+  if (isBlocked && !showVerificationForm) {
+    return (
+      <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-gray-900 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors">
+        <div className="flex justify-center pt-4">
+          <DarkModeToggle />
+        </div>
+        <Navbar />
+        <VerificationBlockModal
+          status={verificationStatus}
+          onStartVerification={handleStartVerification}
+          rejectionReason={rejectionReason}
+          pageType="room"
+        />
+      </div>
+    );
+  }
+
+  // Show verification form when user clicks "Verify Now"
+  if (showVerificationForm) {
+    return (
+      <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-gray-900 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors">
+        <div className="flex justify-center pt-4">
+          <DarkModeToggle />
+        </div>
+        <Navbar />
+        <div className="flex-1 flex items-center justify-center p-4">
+          <div className="w-full max-w-3xl mx-auto bg-white dark:bg-gray-900 rounded-3xl shadow-2xl p-8 border border-blue-100 dark:border-gray-800">
+            <h2 className="text-2xl font-bold text-center mb-6 text-gray-900 dark:text-white">
+              Account Verification
+            </h2>
+            <VerificationForm onSuccess={handleVerificationSubmitted} />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-gray-900 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors">
@@ -175,25 +192,6 @@ export default function PostRoom() {
       <div className="flex-1 flex items-center justify-center p-4">
         <div className="w-full max-w-3xl mx-auto bg-white dark:bg-gray-900 rounded-3xl shadow-2xl p-8 border border-blue-100 dark:border-gray-800 animate-fade-in">
           <h2 className="text-2xl md:text-3xl font-extrabold mb-6 text-blue-700 dark:text-pink-400 drop-shadow-sm transition-all duration-300 text-center">✍️ Post a Room</h2>
-
-          {/* Verification Status Badge */}
-          {verificationStatus && (
-            <div className="mb-4 text-center">
-              {verificationStatus === 'verified' || verificationStatus === 'approved' ? (
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
-                  ✓ Verified Account
-                </span>
-              ) : verificationStatus === 'pending' ? (
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">
-                  ⏳ Verification Pending
-                </span>
-              ) : (
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
-                  🔒 Verification Required
-                </span>
-              )}
-            </div>
-          )}
 
           {error && <div className="text-red-600 mb-2 text-center">{error}</div>}
 
@@ -322,18 +320,6 @@ export default function PostRoom() {
             </button>
         </div>
       </div>
-
-      {/* Verification Required Modal */}
-      <VerificationRequiredModal
-        isOpen={showVerificationModal}
-        onClose={() => setShowVerificationModal(false)}
-        verificationStatus={verificationStatus}
-        statusMessage={verificationMessage}
-        onVerificationSuccess={() => {
-          setShowVerificationModal(false);
-          checkVerificationStatus(); // Refresh status
-        }}
-      />
     </div>
   );
 }

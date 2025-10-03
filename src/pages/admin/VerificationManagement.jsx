@@ -12,6 +12,8 @@ export default function VerificationManagement() {
   const [action, setAction] = useState('');
   const [filter, setFilter] = useState('all');
   const [settings, setSettings] = useState({ require_verification_posting: 1, require_verification_rooms: 0, require_verification_listings: 0 });
+  const [viewingVerification, setViewingVerification] = useState(null);
+  const [showVerificationDetails, setShowVerificationDetails] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -22,27 +24,49 @@ export default function VerificationManagement() {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch(config.getUrl(config.endpoints.admin.verificationRequests), {
+      const response = await fetch(config.getUrl(config.endpoints.admin.users), {
         method: 'GET',
         credentials: 'include'
       });
 
       if (response.ok) {
         const data = await response.json();
-        if (data.success && data.requests) {
-          setUsers(data.requests);
+        if (data.users) {
+          setUsers(data.users);
           setError('');
         } else {
-          setError('No verification requests found');
+          setError('No users data received');
         }
       } else {
-        setError('Failed to fetch verification requests');
+        setError('Failed to fetch users');
       }
     } catch (error) {
-      console.error('Error fetching verification requests:', error);
+      console.error('Error fetching users:', error);
       setError('Error: ' + error.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchVerificationDetails = async (userId) => {
+    try {
+      const response = await fetch(config.getUrl(`/verification/details.php?user_id=${userId}`), {
+        credentials: 'include'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.verification) {
+          setViewingVerification(data.verification);
+          setShowVerificationDetails(true);
+        } else {
+          alert('No verification data found for this user');
+        }
+      } else {
+        alert('Failed to fetch verification details');
+      }
+    } catch (error) {
+      console.error('Error fetching verification details:', error);
+      alert('Error: ' + error.message);
     }
   };
 
@@ -310,6 +334,12 @@ export default function VerificationManagement() {
                       </td>
                       <td className="px-6 py-4 text-sm">
                         <div className="flex flex-col gap-1">
+                          <button
+                            onClick={() => fetchVerificationDetails(user.id)}
+                            className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs font-medium"
+                          >
+                            👁 View Details
+                          </button>
                           {user.verification_status !== 'verified' && (
                             <button
                               onClick={() => handleVerificationAction(user, 'approve_verification')}
@@ -447,6 +477,172 @@ export default function VerificationManagement() {
                   className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 font-medium"
                 >
                   Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Verification Details Modal */}
+        {showVerificationDetails && viewingVerification && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-white rounded-lg max-w-4xl w-full p-6 my-8">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold">Verification Details</h2>
+                <button
+                  onClick={() => {
+                    setShowVerificationDetails(false);
+                    setViewingVerification(null);
+                  }}
+                  className="text-gray-500 hover:text-gray-700 text-2xl"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {/* Personal Information */}
+                <div className="border-b pb-4">
+                  <h3 className="text-lg font-semibold mb-3">Personal Information</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Full Name</label>
+                      <p className="text-gray-900">{viewingVerification.full_name || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Phone</label>
+                      <p className="text-gray-900">{viewingVerification.phone || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Account Type</label>
+                      <p className="text-gray-900">{viewingVerification.account_type || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Submission Date</label>
+                      <p className="text-gray-900">{new Date(viewingVerification.created_at).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Profile Picture */}
+                {viewingVerification.profile_picture && (
+                  <div className="border-b pb-4">
+                    <h3 className="text-lg font-semibold mb-3">Profile Picture</h3>
+                    <img
+                      src={viewingVerification.profile_picture}
+                      alt="Profile"
+                      className="w-48 h-48 object-cover rounded-lg border"
+                    />
+                  </div>
+                )}
+
+                {/* Government ID */}
+                {viewingVerification.government_id_type && (
+                  <div className="border-b pb-4">
+                    <h3 className="text-lg font-semibold mb-3">Government ID</h3>
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">ID Type</label>
+                        <p className="text-gray-900">{viewingVerification.government_id_type}</p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">ID Number</label>
+                        <p className="text-gray-900">{viewingVerification.government_id_number || 'N/A'}</p>
+                      </div>
+                      {viewingVerification.nin && (
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">NIN</label>
+                          <p className="text-gray-900">{viewingVerification.nin}</p>
+                        </div>
+                      )}
+                    </div>
+                    {viewingVerification.government_id_image && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-600 block mb-2">ID Document</label>
+                        <img
+                          src={viewingVerification.government_id_image}
+                          alt="Government ID"
+                          className="max-w-md w-full object-contain rounded-lg border"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* School ID (for students) */}
+                {viewingVerification.school_id_type && (
+                  <div className="border-b pb-4">
+                    <h3 className="text-lg font-semibold mb-3">School ID</h3>
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">ID Type</label>
+                        <p className="text-gray-900">{viewingVerification.school_id_type}</p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">ID Number</label>
+                        <p className="text-gray-900">{viewingVerification.school_id_number || 'N/A'}</p>
+                      </div>
+                      {viewingVerification.school_name && (
+                        <div className="col-span-2">
+                          <label className="text-sm font-medium text-gray-600">School Name</label>
+                          <p className="text-gray-900">{viewingVerification.school_name}</p>
+                        </div>
+                      )}
+                    </div>
+                    {viewingVerification.school_id_image && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-600 block mb-2">School ID Document</label>
+                        <img
+                          src={viewingVerification.school_id_image}
+                          alt="School ID"
+                          className="max-w-md w-full object-contain rounded-lg border"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Status Information */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Status</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Verification Status</label>
+                      <p className="text-gray-900">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          viewingVerification.status === 'approved' ? 'bg-green-100 text-green-800' :
+                          viewingVerification.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                          'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {viewingVerification.status || 'pending'}
+                        </span>
+                      </p>
+                    </div>
+                    {viewingVerification.reviewed_at && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">Reviewed At</label>
+                        <p className="text-gray-900">{new Date(viewingVerification.reviewed_at).toLocaleString()}</p>
+                      </div>
+                    )}
+                    {viewingVerification.admin_message && (
+                      <div className="col-span-2">
+                        <label className="text-sm font-medium text-gray-600">Admin Message</label>
+                        <p className="text-gray-900 bg-gray-50 p-3 rounded">{viewingVerification.admin_message}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 flex justify-end">
+                <button
+                  onClick={() => {
+                    setShowVerificationDetails(false);
+                    setViewingVerification(null);
+                  }}
+                  className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 font-medium"
+                >
+                  Close
                 </button>
               </div>
             </div>

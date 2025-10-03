@@ -26,8 +26,8 @@ if ($stmt->fetch()) {
 }
 
 $hash = hash_password($password);
-$stmt = $pdo->prepare('INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?)');
-$stmt->execute([$email, $hash, 'user']);
+$stmt = $pdo->prepare('INSERT INTO users (email, password_hash, role, can_post_rooms, can_post_listings, verification_status) VALUES (?, ?, ?, 0, 0, ?)');
+$stmt->execute([$email, $hash, 'user', 'unverified']);
 $id = (int)$pdo->lastInsertId();
 
 $_SESSION['user_id'] = $id;

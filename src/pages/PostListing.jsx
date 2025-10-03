@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import Navbar from '../components/common/Navbar';
 import DarkModeToggle from '../components/common/DarkModeToggle';
-import VerificationRequiredModal from '../components/common/VerificationRequiredModal';
+import VerificationBlockModal from '../components/common/VerificationBlockModal';
+import VerificationForm from '../components/user/VerificationForm';
 import config from '../config/api';
 
 export default function PostListing() {
@@ -22,15 +23,14 @@ export default function PostListing() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [canPost, setCanPost] = useState(true);
-  const [showVerificationModal, setShowVerificationModal] = useState(false);
-  const [verificationStatus, setVerificationStatus] = useState('unverified');
-  const [verificationMessage, setVerificationMessage] = useState('');
+  const [verificationStatus, setVerificationStatus] = useState(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [showVerificationForm, setShowVerificationForm] = useState(false);
 
   useEffect(() => {
     if (user) {
-      checkVerificationStatus();
-      checkPostingAccess();
+      checkVerificationAndAccess();
       // Pre-fill contact info
       setForm(prev => ({
         ...prev,
@@ -40,44 +40,58 @@ export default function PostListing() {
     }
   }, [user]);
 
-  // Do NOT force modal on mount; rely on backend 403 to trigger the modal
-  useEffect(() => {
-    // Keep status badge only
-  }, [user, verificationStatus]);
+  const checkVerificationAndAccess = async () => {
+    if (!user) return;
 
-  const checkVerificationStatus = async () => {
+    // Admins and managers bypass verification
+    if (user.role === 'admin' || user.role === 'manager') {
+      setIsBlocked(false);
+      return;
+    }
+
     try {
-      if (user) {
-        setVerificationStatus(user.verification_status || 'unverified');
-        setVerificationMessage(user.status_reason || '');
+      // Fetch user data to get verification status
+      const response = await fetch(config.getUrl(config.endpoints.auth.me), {
+        credentials: 'include'
+      });
 
-        try {
-          const response = await fetch(config.getUrl(config.endpoints.verification.status), {
-            method: 'GET',
-            credentials: 'include'
-          });
-          const data = await response.json();
+      if (response.ok) {
+        const data = await response.json();
+        const userData = data.user || data;
 
-          if (response.ok && data.success) {
-            setVerificationStatus(data.status);
-            setVerificationMessage(data.message || user.status_reason || '');
+        // Check if user can post listings
+        if (userData.can_post_listings === 0) {
+          setIsBlocked(true);
+
+          // Determine verification status
+          const status = userData.verification_status || 'unverified';
+          setVerificationStatus(status);
+
+          if (status === 'rejected') {
+            setRejectionReason(userData.rejection_reason || 'Your verification was rejected. Please submit a new verification.');
           }
-        } catch (apiError) {
-          console.log('API not available, using user data');
+        } else {
+          setIsBlocked(false);
         }
       }
     } catch (error) {
-      console.error('Error checking verification status:', error);
-      setVerificationStatus('unverified');
+      console.error('Error checking verification:', error);
+      // If user object says they can't post, block them
+      if (user.can_post_listings === 0) {
+        setIsBlocked(true);
+        setVerificationStatus(user.verification_status || 'unverified');
+      }
     }
   };
 
-  const checkPostingAccess = () => {
-    // Check if user can post listings
-    if (user && user.can_post_listings === 0) {
-      setCanPost(false);
-      setError(user.posting_suspended_reason || 'You do not have permission to post listings.');
-    }
+  const handleStartVerification = () => {
+    setShowVerificationForm(true);
+  };
+
+  const handleVerificationSubmitted = () => {
+    setShowVerificationForm(false);
+    setVerificationStatus('pending');
+    checkVerificationAndAccess();
   };
 
   const handleImageChange = (index, file) => {
@@ -115,14 +129,6 @@ export default function PostListing() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!canPost) {
-      setError('You do not have permission to post listings.');
-      return;
-    }
-
-    // Let backend enforce verification; react to 403/VERIFICATION_REQUIRED
-
     setError('');
     setSuccess('');
     setSubmitting(true);
@@ -194,14 +200,7 @@ export default function PostListing() {
         // Scroll to top to see success message
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
-        if (response.status === 403 && (data.status_code === 'VERIFICATION_REQUIRED' || (data.error||'').toLowerCase().includes('verify'))) {
-          setShowVerificationModal(true);
-          setVerificationMessage(data.error || 'Verification required');
-        } else if (response.status === 403 && data.status_code === 'POSTING_RESTRICTED') {
-          setError(data.reason || data.error || 'Posting restricted');
-        } else {
-          setError(data.error || 'Failed to post listing');
-        }
+        setError(data.error || 'Failed to post listing');
       }
     } catch (err) {
       setError('Network error. Please try again: ' + err.message);
@@ -210,7 +209,26 @@ export default function PostListing() {
     }
   };
 
-  if (!canPost) {
+  // Show blocking modal if user is not verified
+  if (isBlocked && !showVerificationForm) {
+    return (
+      <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-gray-900 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors">
+        <div className="flex justify-center pt-4">
+          <DarkModeToggle />
+        </div>
+        <Navbar />
+        <VerificationBlockModal
+          status={verificationStatus}
+          onStartVerification={handleStartVerification}
+          rejectionReason={rejectionReason}
+          pageType="listing"
+        />
+      </div>
+    );
+  }
+
+  // Show verification form when user clicks "Verify Now"
+  if (showVerificationForm) {
     return (
       <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-gray-900 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors">
         <div className="flex justify-center pt-4">
@@ -218,11 +236,11 @@ export default function PostListing() {
         </div>
         <Navbar />
         <div className="flex-1 flex items-center justify-center p-4">
-          <div className="w-full max-w-2xl mx-auto bg-white dark:bg-gray-900 rounded-3xl shadow-2xl p-8 border border-blue-100 dark:border-gray-800">
-            <h2 className="text-2xl font-bold text-red-600 dark:text-red-400 mb-4">⚠️ Posting Restricted</h2>
-            <p className="text-gray-700 dark:text-gray-300 mb-4">
-              {error || 'You do not have permission to post listings. Please contact the administrator.'}
-            </p>
+          <div className="w-full max-w-3xl mx-auto bg-white dark:bg-gray-900 rounded-3xl shadow-2xl p-8 border border-blue-100 dark:border-gray-800">
+            <h2 className="text-2xl font-bold text-center mb-6 text-gray-900 dark:text-white">
+              Account Verification
+            </h2>
+            <VerificationForm onSuccess={handleVerificationSubmitted} />
           </div>
         </div>
       </div>
@@ -236,7 +254,7 @@ export default function PostListing() {
       </div>
       <Navbar />
       <div className="flex-1 flex items-center justify-center p-4">
-        <div className="w-full max-w-4xl mx-auto bg-white dark:bg-gray-900 rounded-3xl shadow-2xl p-8 border border-blue-100 dark:border-gray-800 animate-fade-in">
+        <div className="w-full max-w-2xl mx-auto bg-white dark:bg-gray-900 rounded-3xl shadow-2xl p-8 border border-blue-100 dark:border-gray-800">
           <h2 className="text-2xl md:text-3xl font-extrabold mb-6 text-blue-700 dark:text-pink-400 drop-shadow-sm transition-all duration-300 text-center">
             📝 Post a Listing
           </h2>
@@ -434,18 +452,6 @@ export default function PostListing() {
           </form>
         </div>
       </div>
-
-      {/* Verification Required Modal */}
-      <VerificationRequiredModal
-        isOpen={showVerificationModal}
-        onClose={() => setShowVerificationModal(false)}
-        verificationStatus={verificationStatus}
-        statusMessage={verificationMessage}
-        onVerificationSuccess={() => {
-          setShowVerificationModal(false);
-          checkVerificationStatus();
-        }}
-      />
     </div>
   );
 }
