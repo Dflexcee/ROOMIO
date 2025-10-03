@@ -5,6 +5,16 @@ require_once __DIR__ . "/../../lib/Auth.php";
 
 $user = require_auth($pdo);
 
+// Check verification status - users must be verified to post rooms
+if (!isset($user['verification_status']) || !in_array($user['verification_status'], ['verified', 'approved'])) {
+    json_response([
+        'error' => 'You must be verified to post rooms',
+        'verification_status' => $user['verification_status'] ?? 'unverified',
+        'status_code' => 'VERIFICATION_REQUIRED'
+    ], 403);
+    exit;
+}
+
 $body = read_json_body();
 $title = isset($body["title"]) ? trim($body["title"]) : "";
 $description = isset($body["description"]) ? trim($body["description"]) : "";

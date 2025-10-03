@@ -45,10 +45,12 @@ try {
     $stmt->execute([$ticketId]);
     $responses = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+    // Add responses to ticket object to match frontend expectations
+    $ticket['ticket_responses'] = $responses;
+
     json_response([
         'success' => true,
-        'ticket' => $ticket,
-        'responses' => $responses
+        'ticket' => $ticket
     ]);
 
 } catch (PDOException $e) {

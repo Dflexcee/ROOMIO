@@ -94,19 +94,38 @@ export default function VerificationForm({ onSuccess, onCancel }) {
 
       setUploading(false);
 
+      // Prepare data without file objects
+      const submitData = {
+        account_type: formData.account_type,
+        full_name: formData.full_name,
+        phone: formData.phone,
+        government_id_type: formData.government_id_type,
+        government_id_number: formData.government_id_number,
+        nin: formData.nin,
+        school_id_type: formData.school_id_type,
+        school_id_number: formData.school_id_number,
+        school_name: formData.school_name,
+        ...uploads // Add uploaded image URLs
+      };
+
       // Submit verification request
       const response = await fetch(config.getUrl(config.endpoints.verification.submit), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({
-          ...formData,
-          ...uploads
-        })
+        body: JSON.stringify(submitData)
       });
 
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Non-JSON response:', text);
+        throw new Error('Server error: Invalid response format. Please check the console for details.');
+      }
+
       const data = await response.json();
-      
+
       if (response.ok) {
         alert('Verification request submitted successfully! You will be notified once reviewed.');
         onSuccess && onSuccess();
@@ -114,6 +133,7 @@ export default function VerificationForm({ onSuccess, onCancel }) {
         throw new Error(data.error || 'Failed to submit verification request');
       }
     } catch (error) {
+      console.error('Verification submission error:', error);
       setError(error.message);
     } finally {
       setSubmitting(false);

@@ -32,7 +32,7 @@ try {
     // Build dynamic query with available columns
     $selectFields = ['u.id', 'u.email'];
     
-    foreach (['role', 'full_name', 'age', 'gender', 'university', 'department', 'budget_range', 'religion', 'lifestyle', 'created_at'] as $field) {
+    foreach (['role', 'full_name', 'age', 'gender', 'university', 'department', 'budget_range', 'religion', 'lifestyle', 'avatar_url', 'about_me', 'phone', 'created_at'] as $field) {
         if (in_array($field, $columns)) {
             $selectFields[] = 'u.' . $field;
         }
@@ -42,7 +42,36 @@ try {
     $stmt = $pdo->prepare($sql);
     $stmt->execute();
     $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
+    // Add post counts and actual posts for each user
+    foreach ($users as &$user) {
+        // Get approved rooms
+        $stmt = $pdo->prepare("SELECT * FROM rooms WHERE user_id = ? AND status = 'approved' ORDER BY created_at DESC");
+        $stmt->execute([$user['id']]);
+        $rooms = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Parse images JSON for rooms
+        foreach ($rooms as &$room) {
+            $room['images'] = json_decode($room['images'] ?? '[]', true) ?: [];
+        }
+        $user['rooms'] = $rooms;
+        $user['total_rooms'] = count($rooms);
+
+        // Get approved listings
+        $stmt = $pdo->prepare("SELECT * FROM listings WHERE user_id = ? AND status = 'approved' ORDER BY created_at DESC");
+        $stmt->execute([$user['id']]);
+        $listings = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Parse images JSON for listings
+        foreach ($listings as &$listing) {
+            $listing['images'] = json_decode($listing['images'] ?? '[]', true) ?: [];
+        }
+        $user['listings'] = $listings;
+        $user['total_listings'] = count($listings);
+
+        $user['total_posts'] = $user['total_rooms'] + $user['total_listings'];
+    }
+
     json_response(['users' => $users]);
     
 } catch (Exception $e) {

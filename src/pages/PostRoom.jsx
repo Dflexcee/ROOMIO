@@ -25,13 +25,21 @@ export default function PostRoom() {
   const [showVerificationModal, setShowVerificationModal] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState('unverified');
   const [verificationMessage, setVerificationMessage] = useState('');
+  const [canPost, setCanPost] = useState(true);
+  const [postingRestrictionReason, setPostingRestrictionReason] = useState('');
 
   useEffect(() => {
     if (user) {
       checkVerificationStatus();
       checkAccountStatus();
+      checkPostingAccess();
     }
   }, [user]);
+
+  // Do NOT auto-block UI; rely on backend response to enforce verification
+  useEffect(() => {
+    // Keep status indicators only
+  }, [user, verificationStatus]);
 
   const checkAccountStatus = () => {
     // Check if user account is banned, suspended, or inactive
@@ -41,6 +49,16 @@ export default function PostRoom() {
       return false;
     }
     return true;
+  };
+
+  const checkPostingAccess = () => {
+    if (user && user.can_post_rooms === 0) {
+      setCanPost(false);
+      setPostingRestrictionReason(user.posting_suspended_reason || 'You do not have permission to post rooms');
+    } else {
+      setCanPost(true);
+      setPostingRestrictionReason('');
+    }
   };
 
   const checkVerificationStatus = async () => {
@@ -74,11 +92,13 @@ export default function PostRoom() {
   };
 
   const handleSubmit = async () => {
-    // Check verification FIRST - show modal instead of inline error
-    if (verificationStatus !== 'verified' && verificationStatus !== 'approved') {
-      setShowVerificationModal(true);
+    // Check posting access FIRST
+    if (!canPost) {
+      setError(postingRestrictionReason);
       return;
     }
+
+    // Let backend enforce verification; we'll react to 403/VERIFICATION_REQUIRED
 
     setError("");
     setSubmitting(true);
@@ -111,7 +131,9 @@ export default function PostRoom() {
         body: formData,
       });
 
-      const data = await response.json();
+      const ct = response.headers.get('content-type') || '';
+      const bodyText = await response.text();
+      const data = ct.includes('application/json') ? (() => { try { return JSON.parse(bodyText); } catch { return { error: bodyText }; } })() : { error: bodyText };
 
       if (response.ok && data.success) {
         alert('Room posted successfully!');
@@ -126,7 +148,15 @@ export default function PostRoom() {
         });
         setImages([]);
       } else {
-        setError(data.error || 'Failed to post room');
+        // If verification required, open modal
+        if (response.status === 403 && (data.status_code === 'VERIFICATION_REQUIRED' || (data.error||'').toLowerCase().includes('verify'))) {
+          setShowVerificationModal(true);
+          setVerificationMessage(data.error || 'Verification required');
+        } else if (response.status === 403 && data.status_code === 'POSTING_RESTRICTED') {
+          setError(data.reason || data.error || 'Posting restricted');
+        } else {
+          setError(data.error || 'Failed to post room');
+        }
       }
     } catch (err) {
       setError('Network error. Please try again.');
@@ -217,33 +247,54 @@ export default function PostRoom() {
               className="border p-2 w-full mb-3 rounded bg-gray-50 dark:bg-gray-700 dark:text-white"
               rows={3}
             ></textarea>
-            {/* Image Previews */}
-            {images.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-4">
-                {Array.from(images).map((file, idx) => (
-                  <div key={idx} className="relative inline-block">
-                    <img
-                      src={URL.createObjectURL(file)}
-                      alt={`Preview ${idx + 1}`}
-                      className="w-20 h-20 object-cover rounded border"
-                    />
-                    <button
-                      onClick={() => setImages(images.filter((_, i) => i !== idx))}
-                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
-                    >
-                      ×
-                    </button>
+            {/* Image Upload Fields - 4 Individual Upload Fields */}
+            <div className="mb-4">
+              <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">
+                Upload Room Images (Up to 4 images)
+              </label>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[0, 1, 2, 3].map((idx) => (
+                  <div key={idx} className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-2 flex flex-col items-center justify-center relative" style={{ minHeight: '150px' }}>
+                    {images[idx] ? (
+                      <>
+                        <img
+                          src={URL.createObjectURL(images[idx])}
+                          alt={`Preview ${idx + 1}`}
+                          className="w-full h-32 object-cover rounded mb-1"
+                        />
+                        <button
+                          onClick={() => {
+                            const newImages = [...images];
+                            newImages.splice(idx, 1);
+                            setImages(newImages);
+                          }}
+                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600 shadow"
+                        >
+                          ×
+                        </button>
+                      </>
+                    ) : (
+                      <label className="cursor-pointer flex flex-col items-center justify-center w-full h-full">
+                        <span className="text-3xl mb-1">📷</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">Image {idx + 1}</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            if (e.target.files[0]) {
+                              const newImages = [...images];
+                              newImages[idx] = e.target.files[0];
+                              setImages(newImages);
+                            }
+                          }}
+                          className="hidden"
+                        />
+                      </label>
+                    )}
                   </div>
                 ))}
               </div>
-            )}
-            <input
-              type="file"
-              multiple
-              accept="image/*"
-              onChange={e => setImages(Array.from(e.target.files))}
-              className="mb-3"
-            />
+            </div>
             <textarea
               placeholder="Any special conditions?"
               value={form.conditions}

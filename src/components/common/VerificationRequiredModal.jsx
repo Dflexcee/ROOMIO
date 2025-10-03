@@ -26,7 +26,15 @@ export default function VerificationRequiredModal({
   statusMessage = '',
   onVerificationSuccess
 }) {
-  const [showVerificationForm, setShowVerificationForm] = React.useState(false);
+  // For unverified users, show form directly
+  const [showVerificationForm, setShowVerificationForm] = React.useState(verificationStatus === 'unverified');
+
+  React.useEffect(() => {
+    // Update form visibility when status changes
+    if (verificationStatus === 'unverified') {
+      setShowVerificationForm(true);
+    }
+  }, [verificationStatus]);
 
   if (!isOpen) return null;
 

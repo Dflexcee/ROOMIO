@@ -12,12 +12,11 @@
 
 function checkUserStatus($pdo, $user_id, $exclude_admin = true) {
     if (!$user_id) {
-        http_response_code(401);
-        echo json_encode([
+        json_response([
             'success' => false,
             'error' => 'Unauthorized: No user session found',
             'status_code' => 'NO_SESSION'
-        ]);
+        ], 401);
         exit;
     }
 
@@ -34,12 +33,11 @@ function checkUserStatus($pdo, $user_id, $exclude_admin = true) {
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$user) {
-            http_response_code(404);
-            echo json_encode([
+            json_response([
                 'success' => false,
                 'error' => 'User not found',
                 'status_code' => 'USER_NOT_FOUND'
-            ]);
+            ], 404);
             exit;
         }
 
@@ -50,8 +48,7 @@ function checkUserStatus($pdo, $user_id, $exclude_admin = true) {
 
         // Check if user is banned
         if ($user['status'] === 'banned') {
-            http_response_code(403);
-            echo json_encode([
+            json_response([
                 'success' => false,
                 'error' => 'Your account has been banned',
                 'status_code' => 'ACCOUNT_BANNED',
@@ -64,57 +61,44 @@ function checkUserStatus($pdo, $user_id, $exclude_admin = true) {
 
         // Check if user is suspended
         if ($user['status'] === 'suspended') {
-            http_response_code(403);
-            echo json_encode([
+            json_response([
                 'success' => false,
                 'error' => 'Your account has been suspended',
                 'status_code' => 'ACCOUNT_SUSPENDED',
                 'status' => 'suspended',
                 'reason' => $user['status_reason'] ?? 'No reason provided',
                 'changed_at' => $user['status_changed_at']
-            ]);
+            ], 403);
             exit;
         }
 
         // Check if user is deactivated/inactive
         if ($user['status'] === 'inactive') {
-            http_response_code(403);
-            echo json_encode([
+            json_response([
                 'success' => false,
                 'error' => 'Your account has been deactivated',
                 'status_code' => 'ACCOUNT_INACTIVE',
                 'status' => 'inactive',
                 'reason' => $user['status_reason'] ?? 'No reason provided',
                 'changed_at' => $user['status_changed_at']
-            ]);
+            ], 403);
             exit;
         }
 
-        // Check verification status for suspended verification
-        if ($user['verification_status'] === 'suspended') {
-            http_response_code(403);
-            echo json_encode([
-                'success' => false,
-                'error' => 'Your verification has been suspended',
-                'status_code' => 'VERIFICATION_SUSPENDED',
-                'verification_status' => 'suspended',
-                'reason' => $user['status_reason'] ?? 'No reason provided',
-                'changed_at' => $user['status_changed_at']
-            ]);
-            exit;
-        }
+        // NOTE: We do NOT check verification_status here
+        // Verification status only affects posting ability (checked in /rooms/create endpoint)
+        // Users with suspended/rejected verification can still browse, message, edit profile, etc.
 
         // User status is valid, return user data
         return $user;
 
     } catch (PDOException $e) {
         error_log('User status check error: ' . $e->getMessage());
-        http_response_code(500);
-        echo json_encode([
+        json_response([
             'success' => false,
             'error' => 'Database error while checking user status',
             'status_code' => 'DATABASE_ERROR'
-        ]);
+        ], 500);
         exit;
     }
 }
@@ -142,15 +126,13 @@ function isUserStatusValid($pdo, $user_id, $exclude_admin = true) {
             return true;
         }
 
-        // Check status
+        // Check status (only account-level status, NOT verification)
         if (in_array($user['status'], ['banned', 'suspended', 'inactive'])) {
             return false;
         }
 
-        // Check verification status
-        if ($user['verification_status'] === 'suspended') {
-            return false;
-        }
+        // NOTE: We do NOT check verification_status here
+        // Verification only affects posting, not general API access
 
         return true;
 

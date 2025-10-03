@@ -2,10 +2,10 @@
 
 require_once __DIR__ . '/lib/Config.php';
 
-$DB_HOST = Config::get('DB_HOST', '127.0.0.1');
+$DB_HOST = Config::get('DB_HOST', 'localhost');
 $DB_NAME = Config::get('DB_NAME', 'roomio');
-$DB_USER = Config::get('DB_USER', 'ruser');
-$DB_PASS = Config::get('DB_PASS', 'cord3001');
+$DB_USER = Config::get('DB_USER', 'root');
+$DB_PASS = Config::get('DB_PASS', '');
 $DB_CHARSET = 'utf8mb4';
 
 

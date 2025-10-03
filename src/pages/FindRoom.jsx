@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import config from "../config/api";
 import Navbar from "../components/common/Navbar";
+import DarkModeToggle from "../components/common/DarkModeToggle";
 import { useNavigate } from "react-router-dom";
 
 const PAGE_SIZE = 8;
@@ -133,9 +134,12 @@ export default function FindRoom() {
   };
 
   return (
-    <>
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-gray-900 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors">
+      <div className="flex justify-center pt-4">
+        <DarkModeToggle />
+      </div>
       <Navbar />
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-gray-900 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors px-4">
+      <div className="flex-1 flex flex-col items-center justify-center px-4">
         <div className="w-full max-w-7xl mx-auto bg-white dark:bg-gray-900 rounded-3xl shadow-2xl p-8 border border-blue-100 dark:border-gray-800 animate-fade-in">
           <h2 className="text-2xl md:text-3xl font-extrabold mb-6 text-blue-700 dark:text-pink-400 drop-shadow-sm transition-all duration-300 text-center">🏠 Find a Room</h2>
           {error && (
@@ -220,6 +224,21 @@ export default function FindRoom() {
                     <h4 className="font-semibold text-base text-blue-700 dark:text-pink-400 mb-1 truncate">{room.title}</h4>
                     <p className="text-base font-bold text-gray-900 dark:text-white mb-1">₦{Number(room.rent).toLocaleString()}</p>
                     <p className="text-xs text-gray-600 dark:text-gray-300 mb-1 truncate">{room.location}</p>
+                    {/* Poster Info */}
+                    {(room.poster_name || room.poster_avatar) && (
+                      <div className="flex items-center gap-2 mb-2">
+                        {room.poster_avatar && (
+                          <img
+                            src={room.poster_avatar}
+                            alt={room.poster_name || 'Poster'}
+                            className="w-6 h-6 rounded-full object-cover border border-gray-300"
+                          />
+                        )}
+                        <span className="text-xs text-gray-600 dark:text-gray-400">
+                          Posted by {room.poster_name || 'Unknown'}
+                        </span>
+                      </div>
+                    )}
                     <div className="flex flex-wrap gap-1 mb-2">
                       <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs rounded-full">
                         {room.gender_preference || "Any"}
@@ -265,6 +284,6 @@ export default function FindRoom() {
           )}
         </div>
       </div>
-    </>
+    </div>
   );
 } 

@@ -22,8 +22,8 @@ try {
     
     // Define all possible profile fields
     $possibleFields = [
-        'full_name', 'age', 'gender', 'university', 'department', 
-        'budget_range', 'religion', 'lifestyle', 'about_me', 'phone'
+        'full_name', 'age', 'gender', 'university', 'department',
+        'budget_range', 'religion', 'lifestyle', 'about_me', 'phone', 'avatar_url'
     ];
     
     // Only use fields that exist in the table and are provided in input
@@ -60,7 +60,7 @@ try {
     
     // Get updated user data with only existing columns
     $userSelectFields = [];
-    foreach (['id', 'email', 'role', 'full_name', 'age', 'gender', 'university', 'department', 'budget_range', 'religion', 'lifestyle', 'about_me', 'phone', 'created_at'] as $field) {
+    foreach (['id', 'email', 'role', 'full_name', 'age', 'gender', 'university', 'department', 'budget_range', 'religion', 'lifestyle', 'about_me', 'phone', 'avatar_url', 'created_at'] as $field) {
         if (in_array($field, $columns)) {
             $userSelectFields[] = $field;
         }

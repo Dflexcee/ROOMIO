@@ -7,10 +7,12 @@ const navLinks = [
   { to: "/find-room", label: "Find Room" },
   { to: "/find-roommate", label: "Find Roommate" },
   { to: "/my-rooms", label: "🏘️ My Rooms" },
+  { to: "/post-listing", label: "📝 Post Listing" },
+  { to: "/view-listings", label: "🏘️ View Listings" },
+  { to: "/my-listings", label: "📋 My Listings" },
   { to: "/inbox", label: "💬 Inbox" },
   { to: "/profile-edit", label: "Edit Profile" },
   { to: "/help-center", label: "👉 Help Center" },
-  // Add more pages here as needed
 ];
 
 export default function Navbar() {

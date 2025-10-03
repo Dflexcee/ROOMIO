@@ -22,7 +22,7 @@ $q = isset($_GET['q']) ? trim($_GET['q']) : '';
 $limit = isset($_GET['limit']) ? max(1, min(100, intval($_GET['limit']))) : 20;
 $offset = isset($_GET['offset']) ? max(0, intval($_GET['offset'])) : 0;
 
-$sql = "SELECT r.id, r.title, r.description, r.location, r.rent, r.status, r.user_id, r.images, r.amenities, r.created_at, r.updated_at,
+$sql = "SELECT r.id, r.title, r.description, r.location, r.rent, r.gender_preference, r.role, r.conditions, r.status, r.user_id, r.images, r.amenities, r.created_at as posted_at, r.updated_at,
                u.full_name as poster_name, u.email as poster_email, u.avatar_url as poster_avatar, u.phone as poster_phone
         FROM rooms r
         LEFT JOIN users u ON r.user_id = u.id

@@ -2,6 +2,17 @@
 
 require_once __DIR__ . '/lib/Config.php';
 
+// Ensure errors don't leak into JSON responses
+@ini_set('display_errors', '0');
+@ini_set('display_startup_errors', '0');
+@ini_set('log_errors', '1');
+// Start output buffering early to prevent stray output before JSON
+if (!headers_sent()) {
+    if (ob_get_level() === 0) {
+        ob_start();
+    }
+}
+
 $allowedOrigins = Config::getCorsOrigins();
 
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
@@ -62,6 +73,12 @@ if (session_status() === PHP_SESSION_NONE) {
 function json_response($data, int $status = 200): void {
     http_response_code($status);
     header('Content-Type: application/json');
+    // Clean any previous output to avoid corrupting JSON
+    if (ob_get_length() !== false) {
+        while (ob_get_level() > 0) {
+            @ob_end_clean();
+        }
+    }
     echo json_encode($data);
 }
 

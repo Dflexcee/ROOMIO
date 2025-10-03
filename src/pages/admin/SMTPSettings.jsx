@@ -15,6 +15,8 @@ export default function SMTPSettings() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [testEmail, setTestEmail] = useState("");
+  const [testing, setTesting] = useState(false);
 
   useEffect(() => {
     fetchSettings();
@@ -26,10 +28,12 @@ export default function SMTPSettings() {
     setSuccess("");
     
     try {
-      const response = await fetch(config.getUrl(config.endpoints.admin.smtpSettings));
+      const response = await fetch(config.getUrl(config.endpoints.admin.smtpSettings), {
+        credentials: 'include'
+      });
       const data = await response.json();
 
-      if (response.ok) {
+      if (response.ok && data.success) {
         setSettings(data.settings || {});
       } else {
         console.error("Error fetching SMTP settings:", data.error);
@@ -55,12 +59,13 @@ export default function SMTPSettings() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify(settings)
       });
 
       const data = await response.json();
 
-      if (response.ok) {
+      if (response.ok && data.success) {
         setSuccess("SMTP settings saved successfully!");
       } else {
         console.error("Error saving SMTP settings:", data.error);
@@ -199,6 +204,56 @@ export default function SMTPSettings() {
               </button>
             </div>
           </form>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-lg overflow-hidden mt-6">
+          <div className="p-6 space-y-4">
+            <h3 className="text-lg font-semibold">Send Test Email</h3>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Recipient Email</label>
+              <input
+                type="email"
+                value={testEmail}
+                onChange={(e) => setTestEmail(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                placeholder="you@example.com"
+              />
+            </div>
+            <div className="flex justify-end">
+              <button
+                type="button"
+                disabled={testing || !testEmail}
+                onClick={async () => {
+                  setError("");
+                  setSuccess("");
+                  setTesting(true);
+                  try {
+                    const res = await fetch(config.getUrl(config.endpoints.admin.smtpTest), {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      credentials: 'include',
+                      body: JSON.stringify({ email: testEmail })
+                    });
+                    const ct = res.headers.get('content-type') || '';
+                    const txt = await res.text();
+                    const data = ct.includes('application/json') ? (() => { try { return JSON.parse(txt); } catch { return {}; } })() : {};
+                    if (res.ok && data.success) {
+                      setSuccess(data.message || 'Test email sent.');
+                    } else {
+                      setError(data.error || txt || 'Failed to send test email');
+                    }
+                  } catch (e) {
+                    setError(e.message || 'Network error');
+                  } finally {
+                    setTesting(false);
+                  }
+                }}
+                className={`px-4 py-2 rounded-md text-white font-medium ${testing ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
+              >
+                {testing ? 'Sending...' : 'Send Test Email'}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </PageWrapper>

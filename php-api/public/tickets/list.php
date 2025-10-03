@@ -25,6 +25,23 @@ try {
     $stmt->execute([$userId]);
     $tickets = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+    // Fetch responses for each ticket
+    foreach ($tickets as &$ticket) {
+        $stmt = $pdo->prepare("
+            SELECT
+                tr.*,
+                u.full_name,
+                u.email,
+                u.role
+            FROM ticket_responses tr
+            LEFT JOIN users u ON COALESCE(tr.admin_id, tr.user_id) = u.id
+            WHERE tr.ticket_id = ?
+            ORDER BY tr.created_at ASC
+        ");
+        $stmt->execute([$ticket['id']]);
+        $ticket['ticket_responses'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     json_response([
         'success' => true,
         'tickets' => $tickets

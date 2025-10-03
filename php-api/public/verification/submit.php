@@ -1,50 +1,37 @@
 <?php
-// Submit verification request
-// This handles the verification form submission
+require_once '../../config.php';
+require_once '../../bootstrap.php';
+require_once '../../lib/Auth.php';
 
-// CORS headers
-$allowed_origins = ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'];
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-if (in_array($origin, $allowed_origins)) {
-    header('Access-Control-Allow-Origin: ' . $origin);
-} else {
-    header('Access-Control-Allow-Origin: http://localhost:5174'); // Fallback
-}
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
-header('Access-Control-Allow-Credentials: true');
+// Get authenticated user - disable status check to avoid double JSON output
+$user = require_auth($pdo, false);
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
+if (!$user || !isset($user['id'])) {
+    json_response(['error' => 'Authentication failed'], 401);
     exit;
 }
 
-header('Content-Type: application/json');
+$user_id = $user['id'];
 
-try {
-    $pdo = new PDO('mysql:host=127.0.0.1;dbname=roomio;charset=utf8mb4', 'ruser', 'cord3001');
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $input = json_decode(file_get_contents('php://input'), true);
-        
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $input = json_decode(file_get_contents('php://input'), true);
+
+    try {
         // Validate required fields
         $required_fields = ['account_type', 'full_name', 'phone'];
         foreach ($required_fields as $field) {
             if (empty($input[$field])) {
-                throw new Exception("Field '$field' is required");
+                json_response(['error' => "Field '$field' is required"], 400);
+                exit;
             }
         }
-        
-        // Get user ID from session or auth (you'll need to implement this)
-        // For now, we'll use a placeholder - you should get this from your auth system
-        $user_id = $input['user_id'] ?? 1; // This should come from your authentication
         
         // Check if user already has a pending verification request
         $stmt = $pdo->prepare("SELECT id FROM verification_requests WHERE user_id = ? AND status = 'pending'");
         $stmt->execute([$user_id]);
         if ($stmt->rowCount() > 0) {
-            throw new Exception("You already have a pending verification request");
+            json_response(['error' => 'You already have a pending verification request'], 400);
+            exit;
         }
         
         // Prepare data for insertion
@@ -65,8 +52,9 @@ try {
             $school_name = $input['school_name'] ?? null;
             
             // Validate student fields
-            if (empty($school_id_type) || empty($school_id_number) || empty($school_id_image) || empty($school_name)) {
-                throw new Exception("School information is required for students");
+            if (empty($school_id_type) || empty($school_id_number) || empty($school_id_image)) {
+                json_response(['error' => 'School information is required for students'], 400);
+                exit;
             }
         } else {
             $government_id_type = $input['government_id_type'] ?? null;
@@ -80,10 +68,11 @@ try {
             
             // Validate non-student fields
             if (empty($government_id_type) || empty($government_id_number) || empty($government_id_image) || empty($nin)) {
-                throw new Exception("Government ID information is required");
+                json_response(['error' => 'Government ID information is required'], 400);
+                exit;
             }
         }
-        
+
         // Insert verification request
         $stmt = $pdo->prepare("
             INSERT INTO verification_requests (
@@ -93,38 +82,41 @@ try {
                 status, created_at
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())
         ");
-        
+
         $stmt->execute([
             $user_id, $account_type, $full_name, $phone, $profile_picture,
             $government_id_type, $government_id_number, $government_id_image, $nin,
             $school_id_type, $school_id_number, $school_id_image, $school_name
         ]);
-        
+
         $verification_id = $pdo->lastInsertId();
-        
+
         // Update user's verification status and account type
         $stmt = $pdo->prepare("
-            UPDATE users 
-            SET verification_status = 'pending', 
-                account_type = ?, 
+            UPDATE users
+            SET verification_status = 'pending',
+                account_type = ?,
                 verification_request_id = ?,
                 updated_at = NOW()
             WHERE id = ?
         ");
         $stmt->execute([$account_type, $verification_id, $user_id]);
-        
-        echo json_encode([
+
+        json_response([
             'success' => true,
             'message' => 'Verification request submitted successfully',
             'verification_id' => $verification_id
         ]);
-        
-    } else {
-        echo json_encode(['success' => false, 'error' => 'Method not allowed']);
+
+    } catch (PDOException $e) {
+        error_log("Verification Submit Error: " . $e->getMessage());
+        error_log("Stack trace: " . $e->getTraceAsString());
+        json_response(['error' => 'Database error: ' . $e->getMessage()], 500);
+    } catch (Exception $e) {
+        error_log("Verification Submit General Error: " . $e->getMessage());
+        json_response(['error' => $e->getMessage()], 500);
     }
-    
-} catch (Exception $e) {
-    error_log("Verification Submit Error: " . $e->getMessage());
-    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+} else {
+    json_response(['error' => 'Method not allowed'], 405);
 }
 ?>

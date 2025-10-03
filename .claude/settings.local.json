@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./php/php.exe htdocs/roomio/check-users-table.php)",
+      "Bash(./apache_stop.bat)",
+      "Bash(./mysql/bin/mysql.exe:*)",
+      "Bash(curl -s \"http://localhost/roomio/php-api/public/admin/users-clean.php\" -H \"Cookie: PHPSESSID=test\")",
+      "Bash(curl -s \"http://localhost/roomio/php-api/public/admin/users-clean.php\")",
+      "Bash(python:*)",
+      "Bash(curl -s \"http://localhost/roomio/php-api/public/auth/me.php\" -H \"Cookie: PHPSESSID=test\")",
+      "Bash(curl:*)",
+      "Read(//c/xampp/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

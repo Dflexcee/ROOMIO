@@ -36,7 +36,9 @@ export default function HelpCenter() {
         }
       });
 
-      const data = await response.json();
+      const listCt = response.headers.get('content-type') || '';
+      const listText = await response.text();
+      const data = listCt.includes('application/json') ? (() => { try { return JSON.parse(listText); } catch { return { success: false, message: listText }; } })() : { success: false, message: listText };
 
       if (!response.ok) {
         throw new Error(data.message || 'Failed to fetch tickets');
@@ -89,7 +91,9 @@ export default function HelpCenter() {
         })
       });
 
-      const data = await response.json();
+      const createCt = response.headers.get('content-type') || '';
+      const createText = await response.text();
+      const data = createCt.includes('application/json') ? (() => { try { return JSON.parse(createText); } catch { return { success: false, message: createText }; } })() : { success: false, message: createText };
 
       if (!response.ok) {
         throw new Error(data.message || 'Failed to create ticket');
@@ -106,7 +110,18 @@ export default function HelpCenter() {
       }
     } catch (err) {
       console.error("Error submitting ticket:", err);
-      setError(err.message || "Failed to submit ticket. Please try again.");
+      // Detect SMTP errors
+      const isSMTPError = err.message && (
+        err.message.toLowerCase().includes('smtp') ||
+        err.message.toLowerCase().includes('mail') ||
+        err.message.toLowerCase().includes('email config')
+      );
+
+      if (isSMTPError) {
+        setError(`⚠️ SMTP Configuration Error: ${err.message}\n\n💡 Admin needs to configure SMTP settings at /admin/smtp-settings`);
+      } else {
+        setError(err.message || "Failed to submit ticket. Please try again.");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -131,7 +146,9 @@ export default function HelpCenter() {
         })
       });
 
-      const data = await response.json();
+      const replyCt = response.headers.get('content-type') || '';
+      const replyText = await response.text();
+      const data = replyCt.includes('application/json') ? (() => { try { return JSON.parse(replyText); } catch { return { success: false, message: replyText }; } })() : { success: false, message: replyText };
 
       if (!response.ok) {
         throw new Error(data.message || 'Failed to send reply');
@@ -147,7 +164,18 @@ export default function HelpCenter() {
       }
     } catch (err) {
       console.error("Error sending reply:", err);
-      setError(err.message || "Failed to send reply. Please try again.");
+      // Detect SMTP errors
+      const isSMTPError = err.message && (
+        err.message.toLowerCase().includes('smtp') ||
+        err.message.toLowerCase().includes('mail') ||
+        err.message.toLowerCase().includes('email config')
+      );
+
+      if (isSMTPError) {
+        setError(`⚠️ SMTP Configuration Error: ${err.message}\n\n💡 Admin needs to configure SMTP settings at /admin/smtp-settings`);
+      } else {
+        setError(err.message || "Failed to send reply. Please try again.");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -163,7 +191,9 @@ export default function HelpCenter() {
         }
       });
 
-      const data = await response.json();
+      const getCt = response.headers.get('content-type') || '';
+      const getText = await response.text();
+      const data = getCt.includes('application/json') ? (() => { try { return JSON.parse(getText); } catch { return { success: false, message: getText }; } })() : { success: false, message: getText };
 
       if (!response.ok) {
         throw new Error(data.message || 'Failed to fetch ticket details');
@@ -221,8 +251,16 @@ export default function HelpCenter() {
           {/* New Ticket Form */}
           <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl p-8 mb-8 border border-blue-100 dark:border-gray-800">
             <h2 className="text-2xl md:text-3xl font-extrabold mb-6 text-blue-700 dark:text-pink-400">Submit a Ticket</h2>
-            {error && <div className="text-red-600 mb-4">{error}</div>}
-            {success && <div className="text-green-600 mb-4">{success}</div>}
+            {error && (
+              <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg p-4 mb-4">
+                <p className="text-red-700 dark:text-red-300 whitespace-pre-line">{error}</p>
+              </div>
+            )}
+            {success && (
+              <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg p-4 mb-4">
+                <p className="text-green-700 dark:text-green-300">{success}</p>
+              </div>
+            )}
             <form onSubmit={handleSubmit}>
               <div className="mb-4">
                 <label className="block text-gray-700 dark:text-gray-300 mb-2">Name</label>
@@ -326,14 +364,14 @@ export default function HelpCenter() {
                               <div
                                 key={response.id}
                                 className={`p-4 rounded-lg ${
-                                  response.is_admin
+                                  response.is_admin_response
                                     ? "bg-blue-50 dark:bg-blue-900/30"
                                     : "bg-gray-50 dark:bg-gray-800"
                                 }`}
                               >
                                 <p className="text-sm text-gray-600 dark:text-gray-300">{response.message}</p>
                                 <p className="text-xs text-gray-500 mt-2">
-                                  {response.is_admin ? "Admin" : "You"} • {new Date(response.created_at).toLocaleString()}
+                                  {response.is_admin_response ? "Admin" : "You"} • {new Date(response.created_at).toLocaleString()}
                                 </p>
                               </div>
                             ))

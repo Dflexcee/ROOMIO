@@ -1,99 +1,92 @@
 <?php
-// Get verification status for current user
-// This checks the user's verification status and any messages
+require_once '../../config.php';
+require_once '../../bootstrap.php';
+require_once '../../lib/Auth.php';
 
-// CORS headers
-$allowed_origins = ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'];
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-if (in_array($origin, $allowed_origins)) {
-    header('Access-Control-Allow-Origin: ' . $origin);
-} else {
-    header('Access-Control-Allow-Origin: http://localhost:5174'); // Fallback
-}
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
-header('Access-Control-Allow-Credentials: true');
+// Get authenticated user
+$user = require_auth($pdo);
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
+if (!$user || !isset($user['id'])) {
+    json_response(['error' => 'Authentication required'], 401);
     exit;
 }
 
-header('Content-Type: application/json');
+if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    try {
+        $user_id = $user['id'];
 
-try {
-    $pdo = new PDO('mysql:host=127.0.0.1;dbname=roomio;charset=utf8mb4', 'ruser', 'cord3001');
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    
-    if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-        // Get user ID from session or auth (you'll need to implement this)
-        // For now, we'll use a placeholder - you should get this from your auth system
-        $user_id = $_GET['user_id'] ?? 1; // This should come from your authentication
-        
-        // Get user's verification status
+        // Get user's verification status from users table
         $stmt = $pdo->prepare("
-            SELECT 
-                u.verification_status,
-                u.account_type,
-                vr.id as verification_request_id,
-                vr.status as request_status,
-                vr.admin_message,
-                vr.reviewed_at,
-                vr.created_at as request_created_at
-            FROM users u
-            LEFT JOIN verification_requests vr ON u.verification_request_id = vr.id
-            WHERE u.id = ?
+            SELECT
+                verification_status,
+                status_reason,
+                can_post_rooms,
+                can_post_listings,
+                verified_for_rooms,
+                verified_for_listings,
+                role
+            FROM users
+            WHERE id = ?
         ");
         $stmt->execute([$user_id]);
-        $user = $stmt->fetch();
-        
-        if (!$user) {
-            throw new Exception("User not found");
+        $userData = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$userData) {
+            json_response(['error' => 'User not found'], 404);
+            exit;
         }
-        
-        // Get any unread messages for this user
+
+        // Admins bypass verification - always verified
+        if ($userData['role'] === 'admin' || $userData['role'] === 'manager') {
+            json_response([
+                'success' => true,
+                'status' => 'verified',
+                'message' => 'Admin access - no verification required',
+                'can_post_rooms' => true,
+                'can_post_listings' => true,
+                'verification_request' => null
+            ]);
+            exit;
+        }
+
+        // Get most recent verification request if exists
         $stmt = $pdo->prepare("
-            SELECT 
-                vm.message,
-                vm.message_type,
-                vm.created_at,
-                u.full_name as admin_name
-            FROM verification_messages vm
-            LEFT JOIN users u ON vm.from_admin_id = u.id
-            WHERE vm.to_user_id = ? AND vm.is_read = 0
-            ORDER BY vm.created_at DESC
+            SELECT
+                id,
+                status,
+                reviewed_at,
+                created_at
+            FROM verification_requests
+            WHERE user_id = ?
+            ORDER BY created_at DESC
+            LIMIT 1
         ");
         $stmt->execute([$user_id]);
-        $messages = $stmt->fetchAll();
-        
+        $verificationRequest = $stmt->fetch(PDO::FETCH_ASSOC);
+
         // Determine the current status
-        $status = $user['verification_status'] ?: 'unverified';
-        $message = '';
-        
-        if ($user['admin_message']) {
-            $message = $user['admin_message'];
-        } elseif (!empty($messages)) {
-            $message = $messages[0]['message'];
-        }
-        
-        echo json_encode([
+        $status = $userData['verification_status'] ?: 'unverified';
+        $message = $userData['status_reason'] ?: '';
+
+        json_response([
             'success' => true,
             'status' => $status,
-            'account_type' => $user['account_type'],
             'message' => $message,
-            'verification_request_id' => $user['verification_request_id'],
-            'request_status' => $user['request_status'],
-            'reviewed_at' => $user['reviewed_at'],
-            'request_created_at' => $user['request_created_at'],
-            'unread_messages' => count($messages)
+            'can_post_rooms' => (bool)$userData['can_post_rooms'],
+            'can_post_listings' => (bool)$userData['can_post_listings'],
+            'verification_request' => $verificationRequest,
+            'verified_for_rooms' => (bool)($userData['verified_for_rooms'] ?? 0),
+            'verified_for_listings' => (bool)($userData['verified_for_listings'] ?? 0)
         ]);
-        
-    } else {
-        echo json_encode(['success' => false, 'error' => 'Method not allowed']);
+
+    } catch (PDOException $e) {
+        error_log("Verification Status Error: " . $e->getMessage());
+        json_response(['error' => 'Database error: ' . $e->getMessage()], 500);
+    } catch (Exception $e) {
+        error_log("Verification Status Error: " . $e->getMessage());
+        json_response(['error' => $e->getMessage()], 500);
     }
-    
-} catch (Exception $e) {
-    error_log("Verification Status Error: " . $e->getMessage());
-    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+} else {
+    json_response(['error' => 'Method not allowed'], 405);
 }
 ?>

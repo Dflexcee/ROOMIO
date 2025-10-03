@@ -26,10 +26,11 @@ const config = {
       rooms: {
         list: '/rooms/list.php',
         mine: '/rooms/mine.php',
-        create: '/rooms/create-fixed.php',
+        create: '/rooms/create.php',
         update: '/rooms/update.php',
         delete: '/rooms/delete.php',
-        get: '/rooms/get-simple.php'
+        get: '/rooms/get-simple.php',
+        posters: '/rooms/posters.php'
       },
       
     // Admin endpoints
@@ -39,16 +40,21 @@ const config = {
       tickets: '/admin/tickets.php',
       emailTemplates: '/admin/email-templates.php',
       smtpSettings: '/admin/smtp-settings.php',
+      smtpTest: '/admin/smtp-test.php',
       smsSettings: '/admin/sms-settings.php',
       broadcast: '/admin/broadcast.php',
       listings: '/admin/listings-management.php',
       currency: '/admin/currency-management.php',
       roomStatus: '/admin/rooms/status.php',
+      postingAccess: '/admin/posting-access.php',
       verificationRequests: '/admin/verification-requests.php',
       verificationRequestsFallback: '/admin/verification-requests-fallback.php',
       verificationReview: '/admin/verification-review.php',
       verificationActions: '/admin/verification-actions.php',  // NEW: Verification-only actions
+      verificationSettings: '/admin/verification-settings.php',
       verifyUser: '/admin/verify-user.php',
+      roomsManagement: '/admin/rooms-management.php',  // NEW: Room listings management
+      listingsActions: '/admin/listings-actions.php',  // NEW: All listings management
       bannedUsers: '/admin/banned-users.php',
       systemLogs: '/admin/system-logs.php',
       banUser: '/admin/ban-user.php',
@@ -74,7 +80,8 @@ const config = {
       // Users
       users: {
         list: '/users/list.php',
-        get: '/users/get.php'
+        get: '/users/get.php',
+        withPosts: '/users/with-posts.php'
       },
 
       // Messages
@@ -115,6 +122,15 @@ const config = {
         create: '/tickets/create.php',
         get: '/tickets/get.php',
         reply: '/tickets/reply.php'
+      },
+
+      // Listings endpoints (Multi-property posts)
+      listings: {
+        create: '/listings/create.php',
+        list: '/listings/list.php',
+        mine: '/listings/mine.php',
+        update: '/listings/update.php',
+        delete: '/listings/delete.php'
       }
     },
     

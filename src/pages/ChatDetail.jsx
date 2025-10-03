@@ -259,12 +259,36 @@ export default function ChatDetail() {
                       }`}
                     >
                       {message.file_name ? (
-                        <div className="flex items-center space-x-2">
-                          {getFileIcon(message.file_type)}
-                          <div>
-                            <p className="font-medium">{message.file_name}</p>
-                            <p className="text-sm opacity-75">{message.content}</p>
-                          </div>
+                        <div>
+                          {message.file_type?.startsWith('image/') ? (
+                            <div>
+                              <img
+                                src={message.file_url || message.file_path}
+                                alt={message.file_name}
+                                className="max-w-xs rounded cursor-pointer hover:opacity-90 mb-2"
+                                onClick={() => window.open(message.file_url || message.file_path, '_blank')}
+                                style={{ maxHeight: '200px' }}
+                              />
+                              {message.content && (
+                                <p className="text-sm opacity-75">{message.content}</p>
+                              )}
+                            </div>
+                          ) : (
+                            <a
+                              href={message.file_url || message.file_path}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center space-x-2 hover:underline"
+                            >
+                              {getFileIcon(message.file_type)}
+                              <div>
+                                <p className="font-medium">{message.file_name}</p>
+                                {message.content && (
+                                  <p className="text-sm opacity-75">{message.content}</p>
+                                )}
+                              </div>
+                            </a>
+                          )}
                         </div>
                       ) : (
                         <p>{message.content}</p>

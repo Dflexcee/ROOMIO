@@ -3,7 +3,8 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import AdminLayout from '../layouts/AdminLayout';
 import Dashboard from '../pages/admin/Dashboard';
 import Users from '../pages/admin/Users';
-import Listings from '../pages/admin/Listings';
+import RoomListings from '../pages/admin/RoomListings';
+import AllListingsManagement from '../pages/admin/AllListingsManagement';
 import Reports from '../pages/admin/Reports';
 import Tickets from '../pages/admin/Tickets';
 import EmailTemplates from '../pages/admin/EmailTemplates';
@@ -24,6 +25,7 @@ import GrantFeatureAccess from '../pages/admin/GrantFeatureAccess';
 import AgentVerification from '../pages/admin/AgentVerification';
 import VerificationManagement from '../pages/admin/VerificationManagement';
 import CurrencySettings from '../pages/admin/CurrencySettings';
+import PostingAccessManagement from '../pages/admin/PostingAccessManagement';
 
 const AdminRoutes = () => {
   return (
@@ -38,7 +40,9 @@ const AdminRoutes = () => {
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="users" element={<Users />} />
-          <Route path="listings" element={<Listings />} />
+          <Route path="listings" element={<RoomListings />} />
+          <Route path="room-listings" element={<RoomListings />} />
+          <Route path="all-listings" element={<AllListingsManagement />} />
           <Route path="reports" element={<Reports />} />
           <Route path="tickets" element={<Tickets />} />
           <Route path="email-templates" element={<EmailTemplates />} />
@@ -56,6 +60,7 @@ const AdminRoutes = () => {
           <Route path="verification" element={<VerificationManagement />} />
           <Route path="agent-verification" element={<AgentVerification />} />
           <Route path="currency-settings" element={<CurrencySettings />} />
+          <Route path="posting-access" element={<PostingAccessManagement />} />
         </Route>
       </Route>
 

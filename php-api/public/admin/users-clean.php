@@ -23,13 +23,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 try {
-    $pdo = new PDO('mysql:host=127.0.0.1;dbname=roomio;charset=utf8mb4', 'ruser', 'cord3001');
+    $pdo = new PDO('mysql:host=127.0.0.1;dbname=roomio;charset=utf8mb4', 'root', '');
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         // Get users with their status and additional fields
         $stmt = $pdo->query("
-            SELECT 
+            SELECT
                 u.id,
                 u.email,
                 u.full_name,
@@ -50,21 +50,22 @@ try {
                 u.verification_status,
                 u.account_type,
                 u.created_at,
-                COALESCE(p.full_name, u.full_name, 'Unknown') as display_name,
-                COALESCE(p.phone, u.phone, '') as phone_display
+                u.can_post_rooms,
+                u.can_post_listings,
+                u.verified_for_rooms,
+                u.verified_for_listings
             FROM users u
-            LEFT JOIN profiles p ON u.id = p.id
             ORDER BY u.created_at DESC
         ");
         $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
+
         $cleanedUsers = [];
         foreach ($users as $user) {
             $cleanedUsers[] = [
                 'id' => (int)$user['id'],
                 'email' => $user['email'],
-                'full_name' => $user['display_name'],
-                'phone' => $user['phone_display'],
+                'full_name' => $user['full_name'] ?: 'No Name',
+                'phone' => $user['phone'] ?: '',
                 'role' => $user['role'] ?: 'user',
                 'status' => $user['status'] ?: 'active',
                 'is_verified' => (int)$user['is_verified'],
@@ -80,7 +81,11 @@ try {
                 'status_changed_by' => $user['status_changed_by'] ? (int)$user['status_changed_by'] : null,
                 'verification_status' => $user['verification_status'] ?: 'unverified',
                 'account_type' => $user['account_type'] ?: 'individual',
-                'created_at' => $user['created_at']
+                'created_at' => $user['created_at'],
+                'can_post_rooms' => isset($user['can_post_rooms']) ? (int)$user['can_post_rooms'] : null,
+                'can_post_listings' => isset($user['can_post_listings']) ? (int)$user['can_post_listings'] : null,
+                'verified_for_rooms' => isset($user['verified_for_rooms']) ? (int)$user['verified_for_rooms'] : 0,
+                'verified_for_listings' => isset($user['verified_for_listings']) ? (int)$user['verified_for_listings'] : 0
             ];
         }
         

@@ -19,6 +19,10 @@ import MyRooms from "../pages/MyRooms";
 import EditRoom from "../pages/EditRoom";
 import Inbox from "../pages/Inbox";
 import ChatDetail from "../pages/ChatDetail";
+import PostListing from "../pages/PostListing";
+import ViewListings from "../pages/ViewListings";
+import MyListings from "../pages/MyListings";
+import EditListing from "../pages/EditListing";
 
 // Protected Route component
 const ProtectedRoute = ({ children }) => {
@@ -64,6 +68,10 @@ export default function AppRoutes() {
       <Route path="/edit-room/:id" element={<ProtectedRoute><EditRoom /></ProtectedRoute>} />
       <Route path="/inbox" element={<ProtectedRoute><Inbox /></ProtectedRoute>} />
       <Route path="/chat/:userId" element={<ProtectedRoute><ChatDetail /></ProtectedRoute>} />
+      <Route path="/post-listing" element={<ProtectedRoute><PostListing /></ProtectedRoute>} />
+      <Route path="/view-listings" element={<ProtectedRoute><ViewListings /></ProtectedRoute>} />
+      <Route path="/my-listings" element={<ProtectedRoute><MyListings /></ProtectedRoute>} />
+      <Route path="/edit-listing/:id" element={<ProtectedRoute><EditListing /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );

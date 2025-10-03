@@ -11,37 +11,83 @@ export default function VerificationManagement() {
   const [adminMessage, setAdminMessage] = useState('');
   const [action, setAction] = useState('');
   const [filter, setFilter] = useState('all');
+  const [settings, setSettings] = useState({ require_verification_posting: 1, require_verification_rooms: 0, require_verification_listings: 0 });
 
   useEffect(() => {
     fetchUsers();
+    fetchSettings();
   }, []);
 
   const fetchUsers = async () => {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch(config.getUrl(config.endpoints.admin.users), {
+      const response = await fetch(config.getUrl(config.endpoints.admin.verificationRequests), {
         method: 'GET',
         credentials: 'include'
       });
 
       if (response.ok) {
         const data = await response.json();
-        if (data.users) {
-          setUsers(data.users);
+        if (data.success && data.requests) {
+          setUsers(data.requests);
           setError('');
         } else {
-          setError('No users data received');
+          setError('No verification requests found');
         }
       } else {
-        setError('Failed to fetch users');
+        setError('Failed to fetch verification requests');
       }
     } catch (error) {
-      console.error('Error fetching users:', error);
+      console.error('Error fetching verification requests:', error);
       setError('Error: ' + error.message);
     } finally {
       setLoading(false);
     }
+  };
+
+  const togglePerType = async (user, key, nextValue) => {
+    const scope = key === 'verified_for_rooms' ? 'rooms' : 'listings';
+    const action = nextValue ? 'approve_verification' : 'reset_verification';
+    try {
+      const res = await fetch(config.getUrl(config.endpoints.admin.verificationActions), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ user_id: user.id, action, scope, reason: `Per-user ${scope} toggle` })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setUsers(prev => prev.map(u => u.id === user.id ? { ...u, [key]: nextValue ? 1 : 0 } : u));
+      } else {
+        alert(data.error || 'Failed to update');
+      }
+    } catch (e) {
+      alert(e.message || 'Network error');
+    }
+  };
+
+  const fetchSettings = async () => {
+    try {
+      const res = await fetch(config.getUrl(config.endpoints.admin.verificationSettings), { credentials: 'include' });
+      const ct = res.headers.get('content-type') || '';
+      const txt = await res.text();
+      const data = ct.includes('application/json') ? (() => { try { return JSON.parse(txt); } catch { return {}; } })() : {};
+      if (res.ok && data.settings) setSettings(data.settings);
+    } catch {}
+  };
+
+  const updateSettings = async (patch) => {
+    try {
+      const res = await fetch(config.getUrl(config.endpoints.admin.verificationSettings), {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch)
+      });
+      const data = await res.json();
+      if (res.ok && data.settings) setSettings(data.settings);
+    } catch {}
   };
 
   const handleVerificationAction = (user, actionType) => {
@@ -63,7 +109,8 @@ export default function VerificationManagement() {
         body: JSON.stringify({
           user_id: selectedUser.id,
           action: action,
-          reason: adminMessage || `Verification ${action} by admin`
+          reason: adminMessage || `Verification ${action} by admin`,
+          scope: scope
         })
       });
 
@@ -84,6 +131,8 @@ export default function VerificationManagement() {
       alert('Error: ' + error.message);
     }
   };
+
+  const [scope, setScope] = useState('global');
 
   const filteredUsers = users.filter(user => {
     if (filter === 'all') return true;
@@ -143,6 +192,26 @@ export default function VerificationManagement() {
           </div>
         </div>
 
+        {/* Global Verification Toggles */}
+        <div className="mb-6 p-4 bg-white border rounded">
+          <h3 className="font-semibold mb-3">Posting Verification Policy</h3>
+          <div className="flex flex-col gap-2 text-sm">
+            <label className="inline-flex items-center gap-2">
+              <input type="checkbox" checked={!!settings.require_verification_posting} onChange={(e) => updateSettings({ require_verification_posting: e.target.checked ? 1 : 0 })} />
+              <span>Require verification to post (global)</span>
+            </label>
+            <label className="inline-flex items-center gap-2">
+              <input type="checkbox" checked={!!settings.require_verification_rooms} onChange={(e) => updateSettings({ require_verification_rooms: e.target.checked ? 1 : 0 })} />
+              <span>Additionally require for Rooms only (overrides when enabled)</span>
+            </label>
+            <label className="inline-flex items-center gap-2">
+              <input type="checkbox" checked={!!settings.require_verification_listings} onChange={(e) => updateSettings({ require_verification_listings: e.target.checked ? 1 : 0 })} />
+              <span>Additionally require for Listings only (overrides when enabled)</span>
+            </label>
+            <div className="text-xs text-gray-500 mt-1">Admins and managers always bypass verification.</div>
+          </div>
+        </div>
+
         {/* Filter Tabs */}
         <div className="mb-6 flex flex-wrap gap-2">
           {['all', 'unverified', 'pending', 'verified', 'rejected', 'suspended'].map(f => (
@@ -189,6 +258,7 @@ export default function VerificationManagement() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Account Status</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Per-Type Verified</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -274,6 +344,26 @@ export default function VerificationManagement() {
                           )}
                         </div>
                       </td>
+                      <td className="px-6 py-4 text-sm">
+                        <div className="flex items-center gap-4">
+                          <label className="inline-flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={!!user.verified_for_rooms}
+                              onChange={(e) => togglePerType(user, 'verified_for_rooms', e.target.checked)}
+                            />
+                            <span>Rooms</span>
+                          </label>
+                          <label className="inline-flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={!!user.verified_for_listings}
+                              onChange={(e) => togglePerType(user, 'verified_for_listings', e.target.checked)}
+                            />
+                            <span>Listings</span>
+                          </label>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -307,6 +397,15 @@ export default function VerificationManagement() {
                 <p className="text-sm text-gray-600 mb-2">
                   <strong>Current Status:</strong> {selectedUser.verification_status}
                 </p>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Scope</label>
+                <select value={scope} onChange={(e) => setScope(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                  <option value="global">Global (rooms + listings)</option>
+                  <option value="rooms">Rooms only</option>
+                  <option value="listings">Listings only</option>
+                </select>
               </div>
 
               <div className="mb-4 p-3 bg-blue-50 rounded">

@@ -34,30 +34,54 @@ try {
 
     // Create ticket
     $stmt = $pdo->prepare("
-        INSERT INTO tickets (user_id, subject, priority, status, created_at, updated_at)
-        VALUES (?, ?, ?, 'open', NOW(), NOW())
+        INSERT INTO tickets (user_id, subject, description, priority, status, created_at, updated_at)
+        VALUES (?, ?, ?, ?, 'open', NOW(), NOW())
     ");
-    $stmt->execute([$userId, $input['subject'], $priority]);
+    $stmt->execute([$userId, $input['subject'], $input['message'], $priority]);
 
     $ticketId = $pdo->lastInsertId();
 
     // Add initial message as response
     $stmt = $pdo->prepare("
-        INSERT INTO ticket_responses (ticket_id, user_id, message, is_admin, created_at)
+        INSERT INTO ticket_responses (ticket_id, user_id, message, is_admin_response, created_at)
         VALUES (?, ?, ?, FALSE, NOW())
     ");
     $stmt->execute([$ticketId, $userId, $input['message']]);
 
     $pdo->commit();
 
-    // Get the created ticket
-    $stmt = $pdo->prepare("SELECT * FROM tickets WHERE id = ?");
+    // Get the created ticket with user info
+    $stmt = $pdo->prepare("
+        SELECT t.*, u.email, u.full_name
+        FROM tickets t
+        LEFT JOIN users u ON t.user_id = u.id
+        WHERE t.id = ?
+    ");
     $stmt->execute([$ticketId]);
     $ticket = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    // Send email notification to user (confirmation)
+    if ($ticket && $ticket['email']) {
+        require_once '../../lib/EmailSender.php';
+        try {
+            $emailSender = new EmailSender($pdo);
+            $emailSender->sendTicketNotification(
+                $ticketId,
+                $ticket['email'],
+                $input['subject'],
+                $input['message']
+            );
+            error_log("Ticket creation email sent to: {$ticket['email']}");
+        } catch (Exception $e) {
+            error_log('Failed to send ticket creation email: ' . $e->getMessage());
+            // Don't fail the request if email fails
+        }
+    }
 
     json_response([
         'success' => true,
         'ticket' => $ticket,
+        'ticket_id' => $ticketId,
         'message' => 'Ticket created successfully'
     ]);
 
