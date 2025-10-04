@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import Navbar from '../components/common/Navbar';
 import DarkModeToggle from '../components/common/DarkModeToggle';
 import VerificationBlockModal from '../components/common/VerificationBlockModal';
-import VerificationForm from '../components/user/VerificationForm';
+import VerificationFormNew from '../components/user/VerificationFormNew';
 import config from '../config/api';
 
 export default function PostListing() {
@@ -236,12 +236,7 @@ export default function PostListing() {
         </div>
         <Navbar />
         <div className="flex-1 flex items-center justify-center p-4">
-          <div className="w-full max-w-3xl mx-auto bg-white dark:bg-gray-900 rounded-3xl shadow-2xl p-8 border border-blue-100 dark:border-gray-800">
-            <h2 className="text-2xl font-bold text-center mb-6 text-gray-900 dark:text-white">
-              Account Verification
-            </h2>
-            <VerificationForm onSuccess={handleVerificationSubmitted} />
-          </div>
+          <VerificationFormNew onSuccess={handleVerificationSubmitted} />
         </div>
       </div>
     );
