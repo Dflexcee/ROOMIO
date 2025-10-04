@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useCurrency } from '../contexts/CurrencyContext';
 import Navbar from '../components/common/Navbar';
 import DarkModeToggle from '../components/common/DarkModeToggle';
 import VerificationBlockModal from '../components/common/VerificationBlockModal';
@@ -8,6 +9,7 @@ import config from '../config/api';
 
 export default function PostListing() {
   const { user } = useAuth();
+  const { currency } = useCurrency();
   const [form, setForm] = useState({
     type: 'land',
     title: '',
@@ -318,7 +320,7 @@ export default function PostListing() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">
-                  Price (₦) *
+                  Price ({currency.currency_symbol}) *
                 </label>
                 <input
                   type="number"

@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
 import config from "../config/api";
+import { useCurrency } from "../contexts/CurrencyContext";
 import Navbar from "../components/common/Navbar";
 import DarkModeToggle from "../components/common/DarkModeToggle";
 import Button from "../components/common/Button";
 import { useNavigate } from "react-router-dom";
 
 export default function FindRoommate() {
+  const { currency } = useCurrency();
   const [users, setUsers] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -35,9 +37,28 @@ export default function FindRoommate() {
       }
 
       const data = await response.json();
-      setUsers(data.users || []);
+
+      // Parse images for rooms and listings
+      const usersWithParsedImages = (data.users || []).map(user => {
+        if (user.rooms && Array.isArray(user.rooms)) {
+          user.rooms = user.rooms.map(room => ({
+            ...room,
+            images: typeof room.images === 'string' ? JSON.parse(room.images || '[]') : (Array.isArray(room.images) ? room.images : [])
+          }));
+        }
+        if (user.listings && Array.isArray(user.listings)) {
+          user.listings = user.listings.map(listing => ({
+            ...listing,
+            images: typeof listing.images === 'string' ? JSON.parse(listing.images || '[]') : (Array.isArray(listing.images) ? listing.images : [])
+          }));
+        }
+        return user;
+      });
+
+      setUsers(usersWithParsedImages);
     } catch (error) {
       setError('Error: ' + error.message);
+      console.error('Fetch users error:', error);
     } finally {
       setLoading(false);
     }
@@ -147,7 +168,7 @@ export default function FindRoommate() {
               {user.rooms.map(room => (
                 <div key={room.id} className="border dark:border-gray-700 rounded-lg p-4 hover:shadow-lg transition">
                   <h4 className="font-semibold text-gray-900 dark:text-white mb-2">{room.title}</h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">₦{Number(room.rent).toLocaleString()}/month</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{currency.currency_symbol}{Number(room.rent).toLocaleString()}/month</p>
                   <p className="text-sm text-gray-500 dark:text-gray-500 mb-3">{room.location}</p>
                   <button
                     onClick={() => {
@@ -174,7 +195,7 @@ export default function FindRoommate() {
               {user.listings.map(listing => (
                 <div key={listing.id} className="border dark:border-gray-700 rounded-lg p-4 hover:shadow-lg transition">
                   <h4 className="font-semibold text-gray-900 dark:text-white mb-2">{listing.title}</h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">₦{Number(listing.price).toLocaleString()}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{currency.currency_symbol}{Number(listing.price).toLocaleString()}</p>
                   <p className="text-sm text-gray-500 dark:text-gray-500 mb-3 capitalize">{listing.type} - {listing.location}</p>
                   <button
                     onClick={() => {
@@ -203,6 +224,24 @@ export default function FindRoommate() {
 
   // Post Detail Modal
   const PostModal = ({ post, type, onClose }) => {
+    // Debug logging
+    console.log('PostModal - Post data:', post);
+    console.log('PostModal - Type:', type);
+
+    // Validate post data
+    if (!post) {
+      console.error('PostModal: No post data provided');
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <h3 className="text-xl font-bold text-red-600 mb-4">Error</h3>
+            <p className="text-gray-700 dark:text-gray-300 mb-4">Post data is missing</p>
+            <button onClick={onClose} className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg">Close</button>
+          </div>
+        </div>
+      );
+    }
+
     const images = Array.isArray(post.images) && post.images.length > 0
       ? post.images
       : ['/default-room.jpg'];
@@ -221,7 +260,7 @@ export default function FindRoommate() {
           <div className="mb-6">
             <img
               src={images[imageIndex] || '/default-room.jpg'}
-              alt={post.title}
+              alt={post.title || 'Post image'}
               className="w-full h-96 object-cover rounded-xl border-2 border-gray-200 dark:border-gray-700"
               onError={(e) => { e.target.src = '/default-room.jpg'; }}
             />
@@ -274,27 +313,27 @@ export default function FindRoommate() {
                   <div className="bg-blue-50 dark:bg-gray-700 p-3 rounded-lg">
                     <strong className="text-blue-600 dark:text-blue-400">Rent:</strong>
                     <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                      ₦{Number(post.rent).toLocaleString()}/month
+                      {currency.currency_symbol}{Number(post.rent || 0).toLocaleString()}/month
                     </div>
                   </div>
                   <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
                     <strong className="text-gray-600 dark:text-gray-400">Location:</strong>
-                    <div className="text-gray-900 dark:text-white">{post.location}</div>
+                    <div className="text-gray-900 dark:text-white">{post.location || 'N/A'}</div>
                   </div>
                   <div className="bg-purple-50 dark:bg-gray-700 p-3 rounded-lg">
                     <strong className="text-purple-600 dark:text-purple-400">Gender:</strong>
-                    <div className="text-gray-900 dark:text-white capitalize">{post.gender_preference}</div>
+                    <div className="text-gray-900 dark:text-white capitalize">{post.gender_preference || 'Any'}</div>
                   </div>
                   <div className="bg-green-50 dark:bg-gray-700 p-3 rounded-lg">
                     <strong className="text-green-600 dark:text-green-400">Role:</strong>
-                    <div className="text-gray-900 dark:text-white">{post.role}</div>
+                    <div className="text-gray-900 dark:text-white">{post.role || 'N/A'}</div>
                   </div>
                 </div>
 
                 <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                   <strong className="text-gray-700 dark:text-gray-300">Description:</strong>
                   <p className="text-gray-600 dark:text-gray-400 mt-2 whitespace-pre-wrap">
-                    {post.description}
+                    {post.description || 'No description provided'}
                   </p>
                 </div>
 
@@ -305,7 +344,7 @@ export default function FindRoommate() {
                   </div>
                 )}
 
-                {post.amenities && post.amenities.length > 0 && (
+                {post.amenities && Array.isArray(post.amenities) && post.amenities.length > 0 && (
                   <div className="bg-blue-50 dark:bg-gray-700 p-4 rounded-lg">
                     <strong className="text-blue-700 dark:text-blue-400">Amenities:</strong>
                     <div className="flex flex-wrap gap-2 mt-2">
@@ -324,7 +363,7 @@ export default function FindRoommate() {
                   <div className="bg-green-50 dark:bg-gray-700 p-3 rounded-lg">
                     <strong className="text-green-600 dark:text-green-400">Price:</strong>
                     <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                      ₦{Number(post.price).toLocaleString()}
+                      {currency.currency_symbol}{Number(post.price).toLocaleString()}
                     </div>
                   </div>
                   <div className="bg-blue-50 dark:bg-gray-700 p-3 rounded-lg">
@@ -436,26 +475,26 @@ export default function FindRoommate() {
       </div>
       <Navbar />
 
-      <div className="flex-1 flex flex-col items-center justify-center px-4 py-8">
+      <div className="flex-1 flex flex-col items-center justify-center px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8">
         <div className="w-full max-w-7xl">
           {/* Title */}
-          <h1 className="text-3xl font-bold text-center text-white mb-8">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-center text-white mb-4 sm:mb-6 lg:mb-8">
             🔍 Find Roommate
           </h1>
 
-          {/* Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Cards Grid - Responsive */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
             {users.slice(currentIndex, currentIndex + cardsPerPage).map((user) => (
               <div
                 key={user.id}
-                className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden hover:shadow-2xl transition-all duration-300 hover:scale-105 border border-gray-100 dark:border-gray-700"
+                className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] border border-gray-100 dark:border-gray-700 overflow-hidden"
               >
-                {/* Avatar with gradient overlay */}
-                <div className="relative h-56 bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center overflow-hidden">
+                {/* Avatar with gradient overlay - Responsive Height */}
+                <div className="relative h-48 sm:h-56 lg:h-60 bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center overflow-hidden">
                   {/* Default avatar icon as background placeholder */}
                   {!getUserAvatar(user) && (
                     <div className="absolute inset-0 flex items-center justify-center text-white opacity-60">
-                      <svg className="w-32 h-32" fill="currentColor" viewBox="0 0 20 20">
+                      <svg className="w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
                       </svg>
                     </div>
@@ -476,7 +515,7 @@ export default function FindRoommate() {
 
                   {/* Fallback avatar icon (shown on error) */}
                   <div className="avatar-fallback hidden absolute inset-0 flex items-center justify-center text-white">
-                    <svg className="w-32 h-32 opacity-60" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 opacity-60" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
                     </svg>
                   </div>
@@ -484,23 +523,23 @@ export default function FindRoommate() {
                   {/* Overlay gradient for better visibility */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
 
-                  {/* User name overlay at bottom */}
-                  <div className="absolute bottom-3 left-3 right-3">
-                    <h3 className="text-xl font-bold text-white drop-shadow-lg truncate">
+                  {/* User name overlay at bottom - Responsive Text */}
+                  <div className="absolute bottom-2 sm:bottom-3 left-2 sm:left-3 right-2 sm:right-3">
+                    <h3 className="text-lg sm:text-xl font-bold text-white drop-shadow-lg truncate">
                       {user.full_name}
                     </h3>
                   </div>
 
-                  {/* Post badge */}
+                  {/* Post badge - Responsive */}
                   {(user.total_posts > 0) && (
-                    <div className="absolute top-3 right-3 bg-white/90 dark:bg-gray-800/90 text-purple-600 dark:text-purple-400 px-3 py-1.5 rounded-full text-sm font-bold shadow-lg backdrop-blur-sm">
+                    <div className="absolute top-2 sm:top-3 right-2 sm:right-3 bg-white/90 dark:bg-gray-800/90 text-purple-600 dark:text-purple-400 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-bold shadow-lg backdrop-blur-sm">
                       {user.total_posts} {user.total_posts === 1 ? 'Post' : 'Posts'}
                     </div>
                   )}
                 </div>
 
-                {/* Info */}
-                <div className="p-4 space-y-2">
+                {/* Info - Responsive Padding */}
+                <div className="p-3 sm:p-4 space-y-2">
 
                   <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
                     {user.university && <div>🎓 {user.university}</div>}
@@ -557,26 +596,28 @@ export default function FindRoommate() {
             ))}
           </div>
 
-          {/* Navigation */}
-          <div className="flex justify-center items-center gap-6 mt-8">
+          {/* Navigation - Responsive */}
+          <div className="flex justify-center items-center gap-3 sm:gap-4 lg:gap-6 mt-6 sm:mt-8">
             <button
               onClick={handlePrev}
               disabled={currentIndex === 0}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold disabled:opacity-30 disabled:cursor-not-allowed hover:bg-blue-700 transition"
+              className="px-4 sm:px-6 py-2 sm:py-2.5 bg-blue-600 text-white rounded-lg text-sm sm:text-base font-bold disabled:opacity-30 disabled:cursor-not-allowed hover:bg-blue-700 transition"
             >
-              ← Previous
+              <span className="hidden sm:inline">← Previous</span>
+              <span className="sm:hidden">←</span>
             </button>
 
-            <div className="text-white font-semibold">
+            <div className="text-white font-semibold text-sm sm:text-base">
               Page {Math.floor(currentIndex / cardsPerPage) + 1} / {Math.ceil(users.length / cardsPerPage)}
             </div>
 
             <button
               onClick={handleNext}
               disabled={currentIndex + cardsPerPage >= users.length}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold disabled:opacity-30 disabled:cursor-not-allowed hover:bg-blue-700 transition"
+              className="px-4 sm:px-6 py-2 sm:py-2.5 bg-blue-600 text-white rounded-lg text-sm sm:text-base font-bold disabled:opacity-30 disabled:cursor-not-allowed hover:bg-blue-700 transition"
             >
-              Next →
+              <span className="hidden sm:inline">Next →</span>
+              <span className="sm:hidden">→</span>
             </button>
           </div>
         </div>

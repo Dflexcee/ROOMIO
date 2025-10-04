@@ -15,6 +15,9 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $input = json_decode(file_get_contents('php://input'), true);
 $userId = $_SESSION['user_id'];
 
+// Log the incoming request for debugging
+error_log("Profile update request for user $userId: " . json_encode($input));
+
 try {
     // Check what columns exist in users table
     $stmt = $pdo->query("SHOW COLUMNS FROM users");
@@ -30,7 +33,9 @@ try {
     $updateData = [];
     foreach ($possibleFields as $field) {
         if (in_array($field, $columns) && isset($input[$field])) {
-            $updateData[$field] = $input[$field];
+            // Allow empty strings for optional fields, but trim whitespace
+            $value = is_string($input[$field]) ? trim($input[$field]) : $input[$field];
+            $updateData[$field] = $value;
         }
     }
     
@@ -49,14 +54,21 @@ try {
     $values[] = $userId;
     
     $sql = "UPDATE users SET " . implode(', ', $setClause) . " WHERE id = ?";
-    
+
+    // Log the SQL and values for debugging
+    error_log("Profile update SQL: $sql");
+    error_log("Profile update values: " . json_encode($values));
+
     $stmt = $pdo->prepare($sql);
     $result = $stmt->execute($values);
-    
+
     if (!$result) {
+        error_log("Profile update failed for user $userId");
         json_response(['error' => 'Failed to update profile'], 500);
         exit;
     }
+
+    error_log("Profile update successful for user $userId. Rows affected: " . $stmt->rowCount());
     
     // Get updated user data with only existing columns
     $userSelectFields = [];

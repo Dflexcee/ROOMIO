@@ -11,7 +11,8 @@
       "Bash(curl:*)",
       "Read(//c/xampp/**)",
       "Bash(./php/php.exe test-smtp-direct.php)",
-      "Bash(./php/php.exe htdocs/roomio/test-smtp-direct.php)"
+      "Bash(./php/php.exe htdocs/roomio/test-smtp-direct.php)",
+      "Bash(if not exist \"uploads\\id-cards\" mkdir \"uploads\\id-cards\")"
     ],
     "deny": [],
     "ask": []

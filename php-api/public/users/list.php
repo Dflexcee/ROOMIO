@@ -38,7 +38,7 @@ try {
         }
     }
     
-    $sql = "SELECT " . implode(', ', $selectFields) . " FROM users u WHERE u.role != 'banned' AND u.role != 'admin' ORDER BY u.created_at DESC";
+    $sql = "SELECT " . implode(', ', $selectFields) . " FROM users u WHERE u.role != 'banned' ORDER BY u.created_at DESC";
     $stmt = $pdo->prepare($sql);
     $stmt->execute();
     $users = $stmt->fetchAll(PDO::FETCH_ASSOC);

@@ -4,8 +4,10 @@ import { useAuth } from '../contexts/AuthContext';
 import Navbar from '../components/common/Navbar';
 import DarkModeToggle from '../components/common/DarkModeToggle';
 import config from '../config/api';
+import { useCurrency } from '../contexts/CurrencyContext';
 
 export default function EditListing() {
+  const { currency } = useCurrency();
   const { id } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -275,7 +277,7 @@ export default function EditListing() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">
-                  Price (₦) *
+                  Price ({currency.currency_symbol}) *
                 </label>
                 <input
                   type="number"

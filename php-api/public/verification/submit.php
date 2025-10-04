@@ -27,6 +27,7 @@ try {
     $account_type = $input['account_type'];
     $full_name = trim($input['full_name']);
     $phone = trim($input['phone']);
+    $id_image_url = $input['id_image_url'] ?? null;
 
     // Validate based on account type
     if ($account_type === 'student') {
@@ -61,20 +62,30 @@ try {
         exit;
     }
 
+    // Determine which image column to use based on account type
+    $government_id_image = null;
+    $school_id_image = null;
+
+    if ($account_type === 'student') {
+        $school_id_image = $id_image_url;
+    } else {
+        $government_id_image = $id_image_url;
+    }
+
     // Insert verification request
     $stmt = $pdo->prepare("
         INSERT INTO verification_requests (
             user_id, account_type, full_name, phone,
-            government_id_type, government_id_number, nin,
-            school_id_type, school_id_number, school_name,
+            government_id_type, government_id_number, government_id_image, nin,
+            school_id_type, school_id_number, school_id_image, school_name,
             status, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())
     ");
 
     $stmt->execute([
         $user_id, $account_type, $full_name, $phone,
-        $government_id_type, $government_id_number, $nin,
-        $school_id_type, $school_id_number, $school_name
+        $government_id_type, $government_id_number, $government_id_image, $nin,
+        $school_id_type, $school_id_number, $school_id_image, $school_name
     ]);
 
     $verification_id = $pdo->lastInsertId();

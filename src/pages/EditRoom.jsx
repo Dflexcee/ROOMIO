@@ -3,8 +3,10 @@ import { useParams, useNavigate } from "react-router-dom";
 import config from "../config/api";
 import Navbar from "../components/common/Navbar";
 import PageWrapper from "../components/common/PageWrapper";
+import { useCurrency } from "../contexts/CurrencyContext";
 
 export default function EditRoom() {
+  const { currency } = useCurrency();
   const { id } = useParams();
   const [room, setRoom] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -172,7 +174,7 @@ export default function EditRoom() {
                 />
               </div>
               <div>
-                <label className="block text-gray-700 dark:text-gray-300 mb-1">Rent (₦)</label>
+                <label className="block text-gray-700 dark:text-gray-300 mb-1">Rent ({currency.currency_symbol})</label>
                 <input
                   type="number"
                   name="rent"

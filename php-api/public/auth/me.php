@@ -21,6 +21,9 @@ try {
         exit;
     }
 
+    // Remove password_hash from response for security
+    unset($user['password_hash']);
+
     // Ensure posting permissions exist with defaults
     if (!isset($user['can_post_rooms'])) {
         $user['can_post_rooms'] = 0;

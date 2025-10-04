@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useCurrency } from '../contexts/CurrencyContext';
 import Navbar from '../components/common/Navbar';
 import DarkModeToggle from '../components/common/DarkModeToggle';
 import config from '../config/api';
@@ -8,6 +9,7 @@ import VerificationFormNew from '../components/user/VerificationFormNew';
 
 export default function PostRoom() {
   const { user } = useAuth();
+  const { currency } = useCurrency();
   const [form, setForm] = useState({
     title: '',
     description: '',
@@ -200,7 +202,7 @@ export default function PostRoom() {
               />
               <input
                 type="number"
-                placeholder="Rent (₦)"
+                placeholder={`Rent (${currency.currency_symbol})`}
                 value={form.rent}
                 onChange={(e) => setForm({ ...form, rent: e.target.value })}
                 className="border p-2 rounded bg-gray-50 dark:bg-gray-700 dark:text-white"

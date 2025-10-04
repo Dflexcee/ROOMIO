@@ -13,9 +13,12 @@ export default function VerificationFormNew({ onSuccess }) {
     nin: '',
     school_name: '',
     school_id_type: 'student_id',
-    school_id_number: ''
+    school_id_number: '',
+    id_image_url: ''
   });
 
+  const [idImage, setIdImage] = useState(null);
+  const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -25,6 +28,54 @@ export default function VerificationFormNew({ onSuccess }) {
       ...formData,
       [e.target.name]: e.target.value
     });
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+      if (!allowedTypes.includes(file.type)) {
+        setError('Only image files (JPEG, PNG, GIF) are allowed');
+        return;
+      }
+      // Validate file size (5MB max)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('File size must be less than 5MB');
+        return;
+      }
+      setIdImage(file);
+      setError('');
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!idImage) return null;
+
+    setUploading(true);
+    try {
+      const formDataUpload = new FormData();
+      formDataUpload.append('id_image', idImage);
+
+      const response = await fetch(config.getUrl('/upload/id-card.php'), {
+        method: 'POST',
+        credentials: 'include',
+        body: formDataUpload
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        return data.image_url;
+      } else {
+        throw new Error(data.error || 'Failed to upload image');
+      }
+    } catch (err) {
+      console.error('Upload error:', err);
+      throw err;
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -48,12 +99,21 @@ export default function VerificationFormNew({ onSuccess }) {
         }
       }
 
+      // Upload ID image if selected
+      let imageUrl = formData.id_image_url;
+      if (idImage) {
+        imageUrl = await handleUpload();
+      }
+
       // Submit to API
       const response = await fetch(config.getUrl('/verification/submit.php'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          ...formData,
+          id_image_url: imageUrl
+        })
       });
 
       const data = await response.json();
@@ -207,6 +267,24 @@ export default function VerificationFormNew({ onSuccess }) {
                   required
                 />
               </div>
+
+              {/* ID Card Image Upload */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Upload School ID Card Image *
+                </label>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/gif"
+                  onChange={handleFileChange}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                />
+                {idImage && (
+                  <p className="mt-2 text-sm text-green-600 dark:text-green-400">
+                    Selected: {idImage.name}
+                  </p>
+                )}
+              </div>
             </>
           ) : (
             <>
@@ -260,6 +338,24 @@ export default function VerificationFormNew({ onSuccess }) {
                   maxLength="11"
                   required
                 />
+              </div>
+
+              {/* ID Card Image Upload */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Upload Government ID Card Image *
+                </label>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/gif"
+                  onChange={handleFileChange}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                />
+                {idImage && (
+                  <p className="mt-2 text-sm text-green-600 dark:text-green-400">
+                    Selected: {idImage.name}
+                  </p>
+                )}
               </div>
             </>
           )}

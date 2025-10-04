@@ -5,8 +5,10 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/common/Navbar";
 import DarkModeToggle from "../components/common/DarkModeToggle";
 import config from "../config/api.js";
+import { useCurrency } from "../contexts/CurrencyContext";
 
 export default function MyRooms() {
+  const { currency } = useCurrency();
   const { user, loading: authLoading } = useAuth();
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -102,7 +104,7 @@ export default function MyRooms() {
                     className="w-full h-36 object-cover rounded mb-2 border-2 border-blue-200 dark:border-pink-400"
                   />
                   <h4 className="font-semibold text-blue-700 dark:text-pink-400 mb-1">{room.title}</h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">₦{room.rent} • {room.location}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">{currency.currency_symbol}{room.rent} • {room.location}</p>
                   <p className="text-xs mt-1 text-gray-500">Status: {room.status}</p>
                   <div className="flex gap-2 mt-3">
                     <button

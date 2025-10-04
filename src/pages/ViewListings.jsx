@@ -3,10 +3,12 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/common/Navbar";
 import DarkModeToggle from "../components/common/DarkModeToggle";
 import config from "../config/api";
+import { useCurrency } from "../contexts/CurrencyContext";
 
 const PAGE_SIZE = 12;
 
 export default function ViewListings() {
+  const { currency } = useCurrency();
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -134,7 +136,7 @@ export default function ViewListings() {
             </span>
           </div>
           <p className="text-2xl font-bold text-green-600 dark:text-green-400 mb-4">
-            ₦{Number(listing.price).toLocaleString()}
+            {currency.currency_symbol}{Number(listing.price).toLocaleString()}
           </p>
           <p className="text-gray-700 dark:text-gray-300 mb-4 whitespace-pre-wrap">
             {listing.description}
@@ -299,7 +301,7 @@ export default function ViewListings() {
                         {listing.title}
                       </h3>
                       <p className="text-xl font-bold text-green-600 dark:text-green-400 mb-2">
-                        ₦{Number(listing.price).toLocaleString()}
+                        {currency.currency_symbol}{Number(listing.price).toLocaleString()}
                       </p>
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                         📍 {listing.location}

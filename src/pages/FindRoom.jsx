@@ -3,10 +3,12 @@ import config from "../config/api";
 import Navbar from "../components/common/Navbar";
 import DarkModeToggle from "../components/common/DarkModeToggle";
 import { useNavigate } from "react-router-dom";
+import { useCurrency } from "../contexts/CurrencyContext";
 
 const PAGE_SIZE = 8;
 
 export default function FindRoom() {
+  const { currency } = useCurrency();
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -117,7 +119,7 @@ export default function FindRoom() {
           <h2 className="text-2xl font-bold mb-2 text-blue-700 dark:text-pink-400">{room.title}</h2>
           <p className="mb-2 text-gray-700 dark:text-gray-200">{room.description}</p>
           <div className="mb-2 text-gray-600 dark:text-gray-300"><strong>Location:</strong> {room.location}</div>
-          <div className="mb-2 text-gray-600 dark:text-gray-300"><strong>Rent:</strong> ₦{Number(room.rent).toLocaleString()}</div>
+          <div className="mb-2 text-gray-600 dark:text-gray-300"><strong>Rent:</strong> {currency.currency_symbol}{Number(room.rent).toLocaleString()}</div>
           <div className="mb-2 text-gray-600 dark:text-gray-300"><strong>Gender Preference:</strong> {room.gender_preference || "Any"}</div>
           <div className="mb-2 text-gray-600 dark:text-gray-300"><strong>Status:</strong> {room.status}</div>
           <div className="mb-2 text-gray-600 dark:text-gray-300"><strong>Posted at:</strong> {room.posted_at ? new Date(room.posted_at).toLocaleString() : "N/A"}</div>
@@ -222,7 +224,7 @@ export default function FindRoom() {
                       className="w-full h-32 object-cover rounded mb-2 border-2 border-blue-200 dark:border-pink-400"
                     />
                     <h4 className="font-semibold text-base text-blue-700 dark:text-pink-400 mb-1 truncate">{room.title}</h4>
-                    <p className="text-base font-bold text-gray-900 dark:text-white mb-1">₦{Number(room.rent).toLocaleString()}</p>
+                    <p className="text-base font-bold text-gray-900 dark:text-white mb-1">{currency.currency_symbol}{Number(room.rent).toLocaleString()}</p>
                     <p className="text-xs text-gray-600 dark:text-gray-300 mb-1 truncate">{room.location}</p>
                     {/* Poster Info */}
                     {(room.poster_name || room.poster_avatar) && (

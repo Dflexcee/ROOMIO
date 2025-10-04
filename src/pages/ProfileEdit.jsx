@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
+import { useCurrency } from "../contexts/CurrencyContext";
 import { useNavigate } from "react-router-dom";
 import DarkModeToggle from "../components/common/DarkModeToggle";
 import Navbar from "../components/common/Navbar";
@@ -9,6 +10,7 @@ export default function ProfileEdit() {
   const [form, setForm] = useState({});
   const [profilePic, setProfilePic] = useState(null);
   const { user, loading, refreshUser } = useAuth();
+  const { currency } = useCurrency();
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
@@ -91,7 +93,9 @@ export default function ProfileEdit() {
       
       if (updateResponse.ok) {
         setSuccess(true);
-        console.log("Profile updated successfully!");
+        console.log("Profile updated successfully!", updateData);
+        alert(`✅ Profile Updated Successfully!\n\nUpdated fields: ${updateData.updated_fields?.join(', ') || 'all fields'}`);
+
         // Update the form with the returned user data
         if (updateData.user) {
           setForm({
@@ -116,11 +120,15 @@ export default function ProfileEdit() {
         setTimeout(() => setSuccess(false), 3000);
       } else {
         console.error("Update failed:", updateData);
-        setError(updateData.error || "Failed to update profile.");
+        const errorMsg = updateData.error || "Failed to update profile.";
+        setError(`Update failed: ${errorMsg}. Check console for details.`);
+        alert(`Update Error: ${errorMsg}\n\nResponse: ${JSON.stringify(updateData)}`);
       }
     } catch (error) {
       console.error("Profile update error:", error);
-      setError("Network error. Please try again.");
+      const errorMsg = error.message || "Network error";
+      setError(`Network error: ${errorMsg}. Please try again.`);
+      alert(`Error: ${errorMsg}\n\nPlease check:\n1. Are you logged in?\n2. Check browser console\n3. Check network tab`);
     } finally {
       setSaving(false);
     }
@@ -311,11 +319,11 @@ export default function ProfileEdit() {
                     className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                   >
                     <option value="">Select Budget Range</option>
-                    <option value="0-50000">₦0 - ₦50,000</option>
-                    <option value="50000-100000">₦50,000 - ₦100,000</option>
-                    <option value="100000-200000">₦100,000 - ₦200,000</option>
-                    <option value="200000-500000">₦200,000 - ₦500,000</option>
-                    <option value="500000+">₦500,000+</option>
+                    <option value="0-50000">{currency.currency_symbol}0 - {currency.currency_symbol}50,000</option>
+                    <option value="50000-100000">{currency.currency_symbol}50,000 - {currency.currency_symbol}100,000</option>
+                    <option value="100000-200000">{currency.currency_symbol}100,000 - {currency.currency_symbol}200,000</option>
+                    <option value="200000-500000">{currency.currency_symbol}200,000 - {currency.currency_symbol}500,000</option>
+                    <option value="500000+">{currency.currency_symbol}500,000+</option>
                   </select>
                 </div>
 

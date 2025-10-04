@@ -123,7 +123,10 @@ try {
             'title' => $selectedAd['title'],
             'description' => $selectedAd['description'],
             'image_url' => $selectedAd['image_url'],
-            'target_link' => $selectedAd['target_link']
+            'target_link' => $selectedAd['target_link'],
+            'display_duration' => $selectedAd['display_duration'] ?? 5,
+            'skip_after_seconds' => $selectedAd['skip_after_seconds'] ?? 3,
+            'display_interval_hours' => $selectedAd['display_interval_hours'] ?? 24
         ]
     ]);
 

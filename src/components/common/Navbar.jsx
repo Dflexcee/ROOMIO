@@ -6,6 +6,7 @@ const navLinks = [
   { to: "/dashboard", label: "Dashboard" },
   { to: "/find-room", label: "Find Room" },
   { to: "/find-roommate", label: "Find Roommate" },
+  { to: "/post-room", label: "🏠 Post Room" },
   { to: "/my-rooms", label: "🏘️ My Rooms" },
   { to: "/post-listing", label: "📝 Post Listing" },
   { to: "/view-listings", label: "🏘️ View Listings" },
