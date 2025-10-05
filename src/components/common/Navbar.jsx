@@ -1,25 +1,30 @@
 import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { logout } from "../../services/authService";
+import { useAuth } from "../../contexts/AuthContext";
+import DarkModeToggle from "./DarkModeToggle";
 
 const navLinks = [
-  { to: "/dashboard", label: "Dashboard" },
-  { to: "/find-room", label: "Find Room" },
-  { to: "/find-roommate", label: "Find Roommate" },
-  { to: "/post-room", label: "🏠 Post Room" },
-  { to: "/my-rooms", label: "🏘️ My Rooms" },
-  { to: "/post-listing", label: "📝 Post Listing" },
-  { to: "/view-listings", label: "🏘️ View Listings" },
-  { to: "/my-listings", label: "📋 My Listings" },
-  { to: "/inbox", label: "💬 Inbox" },
-  { to: "/profile-edit", label: "Edit Profile" },
-  { to: "/help-center", label: "👉 Help Center" },
+  { to: "/dashboard", label: "Dashboard", icon: "📊" },
+  { to: "/find-room", label: "Find Room", icon: "🔍" },
+  { to: "/find-roommate", label: "Find Roommate", icon: "👥" },
+  { to: "/post-room", label: "Post Room", icon: "🏠" },
+  { to: "/my-rooms", label: "My Rooms", icon: "🏘️" },
+  { to: "/post-listing", label: "Post Listing", icon: "📝" },
+  { to: "/view-listings", label: "View Listings", icon: "🏢" },
+  { to: "/my-listings", label: "My Listings", icon: "📋" },
+  { to: "/scam-board", label: "Scam Alerts", icon: "⚠️" },
+  { to: "/community", label: "Community Feed", icon: "💬" },
+  { to: "/inbox", label: "Inbox", icon: "✉️" },
+  { to: "/profile-edit", label: "Edit Profile", icon: "👤" },
+  { to: "/help-center", label: "Help Center", icon: "❓" },
 ];
 
 export default function Navbar() {
-  const [open, setOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const handleLogout = async () => {
     try {
@@ -27,73 +32,135 @@ export default function Navbar() {
       navigate("/onboarding");
     } catch (error) {
       console.error('Logout error:', error);
-      // Still navigate even if logout fails
       navigate("/onboarding");
     }
   };
 
+  const closeSidebar = () => setSidebarOpen(false);
+
   return (
-    <div className="relative w-full">
-      <nav className="w-full bg-gradient-to-r from-blue-900 via-purple-900 to-gray-900 dark:from-gray-900 dark:via-black dark:to-gray-900 shadow-lg px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between z-40">
-        <div className="flex items-center justify-between w-full md:w-auto">
-          <Link to="/dashboard" className="text-xl font-extrabold text-white tracking-tight drop-shadow-md">
-            Roomio
-          </Link>
-          <div className="flex items-center md:hidden gap-2">
+    <>
+      {/* Top Bar */}
+      <div className="fixed top-0 left-0 right-0 h-16 bg-white dark:bg-gray-900 shadow-md z-40 flex items-center px-4">
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          aria-label="Open menu"
+        >
+          <svg className="w-6 h-6 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+
+        <Link to="/dashboard" className="ml-4 text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400">
+          Roomio
+        </Link>
+
+        <div className="ml-auto flex items-center gap-4">
+          <DarkModeToggle />
+          {user && (
+            <div className="hidden sm:flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-semibold">
+                {user.full_name?.charAt(0)?.toUpperCase() || user.email?.charAt(0)?.toUpperCase() || 'U'}
+              </div>
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300 hidden md:block">
+                {user.full_name || user.email}
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity duration-300"
+          onClick={closeSidebar}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside
+        className={`fixed top-0 left-0 h-full w-72 bg-white dark:bg-gray-900 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <div className="flex flex-col h-full">
+          {/* Sidebar Header */}
+          <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+            <Link to="/dashboard" onClick={closeSidebar} className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400">
+              Roomio
+            </Link>
             <button
-              onClick={() => setOpen((o) => !o)}
-              className="text-white focus:outline-none ml-2"
-              aria-label="Toggle menu"
+              onClick={closeSidebar}
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              aria-label="Close menu"
             >
-              <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              <svg className="w-6 h-6 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
-        </div>
-        {/* Desktop nav links */}
-        <div className="hidden md:flex items-center gap-4">
-          {navLinks.map((link) => (
-            <Link
-              key={link.to}
-              to={link.to}
-              className={`text-white px-3 py-1 rounded transition font-semibold hover:bg-blue-700/60 dark:hover:bg-pink-400/30 ${location.pathname === link.to ? "bg-blue-700 dark:bg-pink-400/40" : ""}`}
-            >
-              {link.label}
-            </Link>
-          ))}
-          <button
-            onClick={handleLogout}
-            className="text-white px-3 py-1 rounded transition font-semibold hover:bg-red-600/60 dark:hover:bg-red-500/30"
-          >
-            Logout
-          </button>
-        </div>
-        {/* Mobile menu */}
-        {open && (
-          <div className="absolute top-full left-0 w-full bg-gradient-to-r from-blue-900 via-purple-900 to-gray-900 dark:from-gray-900 dark:via-black dark:to-gray-900 shadow-lg flex flex-col md:hidden animate-fade-in z-50">
-            {navLinks.map((link) => (
-              <Link
-                key={link.to}
-                to={link.to}
-                className={`text-white px-6 py-3 border-b border-blue-800 dark:border-gray-800 font-semibold ${location.pathname === link.to ? "bg-blue-700 dark:bg-pink-400/40" : ""}`}
-                onClick={() => setOpen(false)}
-              >
-                {link.label}
-              </Link>
-            ))}
+
+          {/* User Info */}
+          {user && (
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg">
+                  {user.full_name?.charAt(0)?.toUpperCase() || user.email?.charAt(0)?.toUpperCase() || 'U'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                    {user.full_name || 'User'}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                    {user.email}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Navigation Links */}
+          <nav className="flex-1 overflow-y-auto p-4 space-y-1">
+            {navLinks.map((link) => {
+              const isActive = location.pathname === link.to;
+              return (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  onClick={closeSidebar}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
+                    isActive
+                      ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-md'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                  }`}
+                >
+                  <span className="text-xl">{link.icon}</span>
+                  <span className="font-medium">{link.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* Logout Button */}
+          <div className="p-4 border-t border-gray-200 dark:border-gray-700">
             <button
               onClick={() => {
-                setOpen(false);
+                closeSidebar();
                 handleLogout();
               }}
-              className="text-white px-6 py-3 border-b border-blue-800 dark:border-gray-800 font-semibold hover:bg-red-600/60 dark:hover:bg-red-500/30"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors font-medium"
             >
-              Logout
+              <span className="text-xl">🚪</span>
+              <span>Logout</span>
             </button>
           </div>
-        )}
-      </nav>
-    </div>
+        </div>
+      </aside>
+
+      {/* Spacer for top bar */}
+      <div className="h-16"></div>
+    </>
   );
 } 
