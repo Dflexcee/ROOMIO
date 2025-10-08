@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
 import PageWrapper from "../../components/common/PageWrapper";
 import config from "../../config/api.js";
+import { useCurrency } from "../../contexts/CurrencyContext";
 
 export default function AllListingsManagement() {
+  const { formatCurrency } = useCurrency();
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -340,7 +342,7 @@ export default function AllListingsManagement() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900 dark:text-white">
-                          ₦{parseFloat(listing.price || 0).toLocaleString()}
+                          {formatCurrency(listing.price || 0)}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -542,12 +544,39 @@ export default function AllListingsManagement() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Images (URLs - one per line)
+                    Images
                   </label>
+                  {Array.isArray(editFormData.images) && editFormData.images.length > 0 && (
+                    <div className="grid grid-cols-3 gap-2 mb-3">
+                      {editFormData.images.map((imgUrl, idx) => (
+                        <div key={idx} className="relative group">
+                          <img
+                            src={imgUrl}
+                            alt={`Listing image ${idx + 1}`}
+                            className="w-full h-32 object-cover rounded border border-gray-300"
+                            onError={(e) => {
+                              e.target.src = '/default-listing.jpg';
+                              e.target.onerror = null;
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newImages = editFormData.images.filter((_, i) => i !== idx);
+                              setEditFormData({...editFormData, images: newImages});
+                            }}
+                            className="absolute top-1 right-1 bg-red-500 text-white px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   <textarea
                     value={Array.isArray(editFormData.images) ? editFormData.images.join('\n') : ''}
                     onChange={(e) => setEditFormData({...editFormData, images: e.target.value.split('\n').filter(url => url.trim())})}
-                    rows="3"
+                    rows="2"
                     placeholder="http://example.com/image1.jpg&#10;http://example.com/image2.jpg"
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg
                              bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono text-sm"

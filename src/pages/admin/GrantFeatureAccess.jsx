@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
 import PageWrapper from "../../components/common/PageWrapper";
 import config from "../../config/api.js";
+import { useCurrency } from "../../contexts/CurrencyContext";
 
 export default function GrantFeatureAccess() {
+  const { formatCurrency } = useCurrency();
   const [users, setUsers] = useState([]);
   const [features, setFeatures] = useState([]);
   const [userSearch, setUserSearch] = useState("");
@@ -148,7 +150,7 @@ export default function GrantFeatureAccess() {
             <option value="">Select Feature</option>
             {features.map((f) => (
               <option key={f.id} value={f.feature_name}>
-                {(f.label || f.feature_name)} (₦{f.unlock_price} / {f.duration_value} {f.duration_type})
+                {(f.label || f.feature_name)} ({formatCurrency(f.unlock_price || 0)} / {f.duration_value} {f.duration_type})
               </option>
             ))}
           </select>

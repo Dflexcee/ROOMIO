@@ -4,6 +4,7 @@ import Navbar from "../components/common/Navbar";
 import DarkModeToggle from "../components/common/DarkModeToggle";
 import { useNavigate } from "react-router-dom";
 import { useCurrency } from "../contexts/CurrencyContext";
+import LazyImage from "../components/common/LazyImage";
 
 const PAGE_SIZE = 8;
 
@@ -103,7 +104,7 @@ export default function FindRoom() {
           </button>
           {/* Image carousel */}
           <div className="flex flex-col items-center mb-4">
-            <img
+            <LazyImage
               src={images[imgIdx]}
               alt={room.title}
               className="w-full h-56 object-cover rounded border-4 border-blue-200 dark:border-pink-400 mb-2"
@@ -218,7 +219,7 @@ export default function FindRoom() {
               <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                 {paginatedRooms.map((room) => (
                   <div key={room.id} className="bg-white dark:bg-gray-800 rounded-xl shadow p-4 border border-blue-100 dark:border-gray-700 flex flex-col hover:scale-[1.01] transition-transform min-h-[320px]">
-                    <img
+                    <LazyImage
                       src={Array.isArray(room.images) && room.images.length > 0 ? room.images[0] : "/default-room.jpg"}
                       alt={room.title}
                       className="w-full h-32 object-cover rounded mb-2 border-2 border-blue-200 dark:border-pink-400"
@@ -230,7 +231,7 @@ export default function FindRoom() {
                     {(room.poster_name || room.poster_avatar) && (
                       <div className="flex items-center gap-2 mb-2">
                         {room.poster_avatar && (
-                          <img
+                          <LazyImage
                             src={room.poster_avatar}
                             alt={room.poster_name || 'Poster'}
                             className="w-6 h-6 rounded-full object-cover border border-gray-300"

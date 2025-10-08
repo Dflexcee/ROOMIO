@@ -1,6 +1,10 @@
 <?php
 require_once __DIR__ . '/../../bootstrap.php';
 require_once __DIR__ . '/../../config.php';
+require_once __DIR__ . '/../../middleware/rate-limiter.php';
+
+// Rate limiting: 5 login attempts per 15 minutes per IP
+check_rate_limit($pdo, 'login', 5, 900);
 
 $body = read_json_body();
 $email = isset($body['email']) ? trim(strtolower($body['email'])) : '';
@@ -19,6 +23,9 @@ if (!$user || !password_verify($password, $user['password_hash'])) {
     json_response(['error' => 'Invalid credentials'], 401);
     exit;
 }
+
+// Successful login - reset rate limit for this IP
+reset_rate_limit($pdo, 'login');
 
 $_SESSION['user_id'] = (int)$user['id'];
 

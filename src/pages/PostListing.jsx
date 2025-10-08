@@ -6,6 +6,11 @@ import DarkModeToggle from '../components/common/DarkModeToggle';
 import VerificationBlockModal from '../components/common/VerificationBlockModal';
 import VerificationFormNew from '../components/user/VerificationFormNew';
 import config from '../config/api';
+import FormInput from '../components/common/FormInput';
+import FormTextArea from '../components/common/FormTextArea';
+import FormSelect from '../components/common/FormSelect';
+import Alert from '../components/common/Alert';
+import LoadingButton from '../components/common/LoadingButton';
 
 export default function PostListing() {
   const { user } = useAuth();
@@ -61,16 +66,33 @@ export default function PostListing() {
         const data = await response.json();
         const userData = data.user || data;
 
-        // Check if user can post listings
-        if (userData.can_post_listings === 0) {
+        // Block if not verified OR can't post listings
+        const userIsVerified = userData.is_verified === 1 && userData.verification_status === 'verified';
+
+        if (!userIsVerified || userData.can_post_listings === 0) {
           setIsBlocked(true);
 
           // Determine verification status
-          const status = userData.verification_status || 'unverified';
+          const status = userData.verification_status || 'pending';
           setVerificationStatus(status);
 
-          if (status === 'rejected') {
-            setRejectionReason(userData.rejection_reason || 'Your verification was rejected. Please submit a new verification.');
+          // Fetch verification details to get admin message
+          try {
+            const verifyResponse = await fetch(config.getUrl('/verification/status.php'), {
+              credentials: 'include'
+            });
+            const verifyData = await verifyResponse.json();
+            if (verifyData.success && verifyData.verification) {
+              // Set status from verification data (more accurate)
+              setVerificationStatus(verifyData.verification.status || status);
+
+              // Get admin message if exists
+              if (verifyData.verification.admin_message) {
+                setRejectionReason(verifyData.verification.admin_message);
+              }
+            }
+          } catch (err) {
+            console.error('Error fetching verification details:', err);
           }
         } else {
           setIsBlocked(false);
@@ -78,11 +100,9 @@ export default function PostListing() {
       }
     } catch (error) {
       console.error('Error checking verification:', error);
-      // If user object says they can't post, block them
-      if (user.can_post_listings === 0) {
-        setIsBlocked(true);
-        setVerificationStatus(user.verification_status || 'unverified');
-      }
+      // Default to blocking if we can't verify
+      setIsBlocked(true);
+      setVerificationStatus(user.verification_status || 'pending');
     }
   };
 
@@ -256,137 +276,94 @@ export default function PostListing() {
             📝 Post a Listing
           </h2>
 
-          {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-              {error}
-            </div>
-          )}
-          {success && (
-            <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
-              {success}
-            </div>
-          )}
+          <Alert type="error" message={error} onClose={() => setError('')} />
+          <Alert type="success" message={success} onClose={() => setSuccess('')} />
 
           <form onSubmit={handleSubmit}>
             {/* Listing Type */}
-            <div className="mb-4">
-              <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">
-                Listing Type *
-              </label>
-              <select
-                value={form.type}
-                onChange={(e) => setForm({ ...form, type: e.target.value })}
-                className="w-full border p-2 rounded bg-gray-50 dark:bg-gray-700 dark:text-white"
-                required
-              >
-                <option value="land">Land</option>
-                <option value="house">House</option>
-                <option value="car">Car</option>
-                <option value="other">Other Property</option>
-              </select>
-            </div>
+            <FormSelect
+              label="Listing Type"
+              value={form.type}
+              onChange={(e) => setForm({ ...form, type: e.target.value })}
+              options={[
+                { value: 'land', label: 'Land' },
+                { value: 'house', label: 'House' },
+                { value: 'car', label: 'Car' },
+                { value: 'other', label: 'Other Property' }
+              ]}
+              required
+              className="mb-4"
+            />
 
             {/* Title */}
-            <div className="mb-4">
-              <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">
-                Title *
-              </label>
-              <input
-                type="text"
-                value={form.title}
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
-                className="w-full border p-2 rounded bg-gray-50 dark:bg-gray-700 dark:text-white"
-                placeholder="e.g., 3 Bedroom Apartment in Lekki"
-                required
-              />
-            </div>
+            <FormInput
+              label="Title"
+              type="text"
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              placeholder="e.g., 3 Bedroom Apartment in Lekki"
+              required
+              className="mb-4"
+            />
 
             {/* Description */}
-            <div className="mb-4">
-              <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">
-                Description *
-              </label>
-              <textarea
-                value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
-                className="w-full border p-2 rounded bg-gray-50 dark:bg-gray-700 dark:text-white"
-                rows="4"
-                placeholder="Describe your listing..."
-                required
-              />
-            </div>
+            <FormTextArea
+              label="Description"
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              rows={4}
+              placeholder="Describe your listing..."
+              required
+              className="mb-4"
+            />
 
             {/* Price & Location */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">
-                  Price ({currency.currency_symbol}) *
-                </label>
-                <input
-                  type="number"
-                  value={form.price}
-                  onChange={(e) => setForm({ ...form, price: e.target.value })}
-                  className="w-full border p-2 rounded bg-gray-50 dark:bg-gray-700 dark:text-white"
-                  placeholder="Enter price"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">
-                  Location *
-                </label>
-                <input
-                  type="text"
-                  value={form.location}
-                  onChange={(e) => setForm({ ...form, location: e.target.value })}
-                  className="w-full border p-2 rounded bg-gray-50 dark:bg-gray-700 dark:text-white"
-                  placeholder="e.g., Lekki, Lagos"
-                  required
-                />
-              </div>
+              <FormInput
+                label={`Price (${currency.currency_symbol})`}
+                type="number"
+                value={form.price}
+                onChange={(e) => setForm({ ...form, price: e.target.value })}
+                placeholder="Enter price"
+                required
+              />
+              <FormInput
+                label="Location"
+                type="text"
+                value={form.location}
+                onChange={(e) => setForm({ ...form, location: e.target.value })}
+                placeholder="e.g., Lekki, Lagos"
+                required
+              />
             </div>
 
             {/* Contact Info */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">
-                  Contact Phone *
-                </label>
-                <input
-                  type="tel"
-                  value={form.contact_phone}
-                  onChange={(e) => setForm({ ...form, contact_phone: e.target.value })}
-                  className="w-full border p-2 rounded bg-gray-50 dark:bg-gray-700 dark:text-white"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">
-                  Contact Email *
-                </label>
-                <input
-                  type="email"
-                  value={form.contact_email}
-                  onChange={(e) => setForm({ ...form, contact_email: e.target.value })}
-                  className="w-full border p-2 rounded bg-gray-50 dark:bg-gray-700 dark:text-white"
-                  required
-                />
-              </div>
+              <FormInput
+                label="Contact Phone"
+                type="tel"
+                value={form.contact_phone}
+                onChange={(e) => setForm({ ...form, contact_phone: e.target.value })}
+                required
+              />
+              <FormInput
+                label="Contact Email"
+                type="email"
+                value={form.contact_email}
+                onChange={(e) => setForm({ ...form, contact_email: e.target.value })}
+                required
+              />
             </div>
 
             {/* Specifications */}
-            <div className="mb-4">
-              <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">
-                Specifications (Optional)
-              </label>
-              <textarea
-                value={form.specifications}
-                onChange={(e) => setForm({ ...form, specifications: e.target.value })}
-                className="w-full border p-2 rounded bg-gray-50 dark:bg-gray-700 dark:text-white"
-                rows="3"
-                placeholder="Additional details, features, etc."
-              />
-            </div>
+            <FormTextArea
+              label="Specifications (Optional)"
+              value={form.specifications}
+              onChange={(e) => setForm({ ...form, specifications: e.target.value })}
+              rows={3}
+              placeholder="Additional details, features, etc."
+              className="mb-4"
+            />
 
             {/* 5 Image Upload Fields */}
             <div className="mb-6">
@@ -439,13 +416,15 @@ export default function PostListing() {
             </div>
 
             {/* Submit Button */}
-            <button
+            <LoadingButton
               type="submit"
-              disabled={submitting}
-              className="w-full bg-gradient-to-r from-green-500 to-blue-600 dark:from-blue-700 dark:to-purple-700 text-white px-6 py-3 rounded-full shadow-lg hover:scale-105 transition text-lg font-semibold disabled:opacity-60"
+              loading={submitting}
+              loadingText="Submitting..."
+              variant="primary"
+              className="w-full bg-gradient-to-r from-green-500 to-blue-600 dark:from-blue-700 dark:to-purple-700 text-lg"
             >
-              {submitting ? 'Submitting...' : 'Submit Listing'}
-            </button>
+              Submit Listing
+            </LoadingButton>
           </form>
         </div>
       </div>

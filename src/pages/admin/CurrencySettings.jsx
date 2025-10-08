@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from "react";
 import PageWrapper from "../../components/common/PageWrapper";
+import FormInput from "../../components/common/FormInput";
+import FormSelect from "../../components/common/FormSelect";
+import Alert from "../../components/common/Alert";
+import Modal from "../../components/common/Modal";
+import LoadingSpinner from "../../components/common/LoadingSpinner";
 import config from "../../config/api.js";
 import currencyManager from "../../utils/currency.js";
 
@@ -75,6 +80,12 @@ export default function CurrencySettings() {
         await currencyManager.updateCurrency(currencyCode);
         // Refresh the currency manager data
         await currencyManager.initialize();
+        // Trigger refresh across the app
+        window.dispatchEvent(new CustomEvent('currencyUpdated', {
+          detail: { currency_code: currencyCode }
+        }));
+        // Refresh currency settings
+        await fetchCurrencySettings();
         alert('Default currency updated successfully! Changes will apply across the entire application.');
       } else {
         alert('Failed to update currency: ' + (data.error || 'Unknown error'));
@@ -196,9 +207,7 @@ export default function CurrencySettings() {
   if (loading) {
     return (
       <PageWrapper>
-        <div className="flex justify-center items-center h-64">
-          <p className="text-lg text-gray-600">Loading currency settings...</p>
-        </div>
+        <LoadingSpinner size="md" message="Loading currency settings..." />
       </PageWrapper>
     );
   }
@@ -206,23 +215,25 @@ export default function CurrencySettings() {
   if (error) {
     return (
       <PageWrapper>
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-          <strong className="font-bold">Error!</strong>
-          <span className="block sm:inline"> {error}</span>
-          {error.includes('database tables not found') && (
-            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded">
-              <h4 className="font-semibold text-blue-800 mb-2">Setup Instructions:</h4>
-              <ol className="list-decimal list-inside text-sm text-blue-700 space-y-1">
-                <li>Open phpMyAdmin</li>
-                <li>Select the 'roomio' database</li>
-                <li>Go to the SQL tab</li>
-                <li>Copy and paste the contents of 'currency-settings.sql'</li>
-                <li>Click 'Go' to execute the SQL</li>
-                <li>Refresh this page</li>
-              </ol>
-            </div>
-          )}
-        </div>
+        <Alert type="error" message={
+          <>
+            <strong className="font-bold">Error!</strong>
+            <span className="block sm:inline"> {error}</span>
+            {error.includes('database tables not found') && (
+              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded">
+                <h4 className="font-semibold text-blue-800 mb-2">Setup Instructions:</h4>
+                <ol className="list-decimal list-inside text-sm text-blue-700 space-y-1">
+                  <li>Open phpMyAdmin</li>
+                  <li>Select the 'roomio' database</li>
+                  <li>Go to the SQL tab</li>
+                  <li>Copy and paste the contents of 'currency-settings.sql'</li>
+                  <li>Click 'Go' to execute the SQL</li>
+                  <li>Refresh this page</li>
+                </ol>
+              </div>
+            )}
+          </>
+        } />
       </PageWrapper>
     );
   }
@@ -252,18 +263,15 @@ export default function CurrencySettings() {
         <h3 className="text-lg font-semibold mb-4">Current Settings</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Default Currency</label>
-            <select
+            <FormSelect
+              label="Default Currency"
               value={currentCurrency}
               onChange={(e) => setCurrentCurrency(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {currencies.filter(c => c.is_active).map(currency => (
-                <option key={currency.currency_code} value={currency.currency_code}>
-                  {currency.currency_symbol} {currency.currency_name} ({currency.currency_code})
-                </option>
-              ))}
-            </select>
+              options={currencies.filter(c => c.is_active).map(currency => ({
+                value: currency.currency_code,
+                label: `${currency.currency_symbol} ${currency.currency_name} (${currency.currency_code})`
+              }))}
+            />
             <button
               onClick={() => handleSetDefaultCurrency(currentCurrency)}
               className="mt-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
@@ -272,16 +280,16 @@ export default function CurrencySettings() {
             </button>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Display Format</label>
-            <select
+            <FormSelect
+              label="Display Format"
               value={displayFormat}
               onChange={(e) => setDisplayFormat(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="symbol_amount">Symbol + Amount (₦150,000)</option>
-              <option value="amount_symbol">Amount + Symbol (150,000₦)</option>
-              <option value="code_amount">Amount + Code (150,000 NGN)</option>
-            </select>
+              options={[
+                { value: 'symbol_amount', label: 'Symbol + Amount (₦150,000)' },
+                { value: 'amount_symbol', label: 'Amount + Symbol (150,000₦)' },
+                { value: 'code_amount', label: 'Amount + Code (150,000 NGN)' }
+              ]}
+            />
             <button
               onClick={() => handleSetDisplayFormat(displayFormat)}
               className="mt-2 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
@@ -380,69 +388,58 @@ export default function CurrencySettings() {
       </div>
 
       {/* Add Currency Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
-            <div className="p-6 border-b">
-              <h3 className="text-lg font-bold">Add New Currency</h3>
-            </div>
-            
-            <div className="p-6">
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Currency Code</label>
-                  <input
-                    type="text"
-                    value={newCurrency.currency_code}
-                    onChange={(e) => setNewCurrency(prev => ({ ...prev, currency_code: e.target.value.toUpperCase() }))}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="e.g., USD"
-                    maxLength={3}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Currency Name</label>
-                  <input
-                    type="text"
-                    value={newCurrency.currency_name}
-                    onChange={(e) => setNewCurrency(prev => ({ ...prev, currency_name: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="e.g., US Dollar"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Currency Symbol</label>
-                  <input
-                    type="text"
-                    value={newCurrency.currency_symbol}
-                    onChange={(e) => setNewCurrency(prev => ({ ...prev, currency_symbol: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="e.g., $"
-                  />
-                </div>
-              </div>
-              
-              <div className="flex justify-end space-x-3 mt-6">
-                <button
-                  onClick={() => {
-                    setShowAddModal(false);
-                    setNewCurrency({ currency_code: '', currency_name: '', currency_symbol: '' });
-                  }}
-                  className="px-4 py-2 text-gray-600 bg-gray-100 rounded hover:bg-gray-200"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleAddCurrency}
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                >
-                  Add Currency
-                </button>
-              </div>
-            </div>
+      <Modal
+        isOpen={showAddModal}
+        onClose={() => {
+          setShowAddModal(false);
+          setNewCurrency({ currency_code: '', currency_name: '', currency_symbol: '' });
+        }}
+        title="Add New Currency"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <FormInput
+            label="Currency Code"
+            type="text"
+            value={newCurrency.currency_code}
+            onChange={(e) => setNewCurrency(prev => ({ ...prev, currency_code: e.target.value.toUpperCase() }))}
+            placeholder="e.g., USD"
+            maxLength={3}
+          />
+          <FormInput
+            label="Currency Name"
+            type="text"
+            value={newCurrency.currency_name}
+            onChange={(e) => setNewCurrency(prev => ({ ...prev, currency_name: e.target.value }))}
+            placeholder="e.g., US Dollar"
+          />
+          <FormInput
+            label="Currency Symbol"
+            type="text"
+            value={newCurrency.currency_symbol}
+            onChange={(e) => setNewCurrency(prev => ({ ...prev, currency_symbol: e.target.value }))}
+            placeholder="e.g., $"
+          />
+
+          <div className="flex justify-end space-x-3 mt-6">
+            <button
+              onClick={() => {
+                setShowAddModal(false);
+                setNewCurrency({ currency_code: '', currency_name: '', currency_symbol: '' });
+              }}
+              className="px-4 py-2 text-gray-600 bg-gray-100 rounded hover:bg-gray-200"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleAddCurrency}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Add Currency
+            </button>
           </div>
         </div>
-      )}
+      </Modal>
     </PageWrapper>
   );
 }

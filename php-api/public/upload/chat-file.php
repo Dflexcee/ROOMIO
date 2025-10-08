@@ -2,49 +2,66 @@
 require_once '../../config.php';
 require_once '../../bootstrap.php';
 
-// Check if user is logged in
-if (!isset($_SESSION['user_id'])) {
-    json_response(['error' => 'Authentication required'], 401);
-    exit;
-}
+header('Content-Type: application/json');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     json_response(['error' => 'Method not allowed'], 405);
+    exit;
 }
 
-if (!isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
-    json_response(['error' => 'No file uploaded or upload error'], 400);
+try {
+    $sender_id = $_POST['sender_id'] ?? null;
+    $receiver_id = $_POST['receiver_id'] ?? null;
+
+    if (!$sender_id || !$receiver_id) {
+        json_response(['error' => 'Missing sender_id or receiver_id'], 400);
+        exit;
+    }
+
+    if (!isset($_FILES['file'])) {
+        json_response(['error' => 'No file uploaded'], 400);
+        exit;
+    }
+
+    $file = $_FILES['file'];
+    $allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
+    $maxSize = 10 * 1024 * 1024; // 10MB
+
+    if (!in_array($file['type'], $allowedTypes)) {
+        json_response(['error' => 'Invalid file type'], 400);
+        exit;
+    }
+
+    if ($file['size'] > $maxSize) {
+        json_response(['error' => 'File too large. Maximum 10MB'], 400);
+        exit;
+    }
+
+    $uploadDir = __DIR__ . '/../../../uploads/chat-files/';
+    if (!file_exists($uploadDir)) {
+        mkdir($uploadDir, 0755, true);
+    }
+
+    $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
+    $newFileName = uniqid() . '_' . time() . '.' . $extension;
+    $uploadPath = $uploadDir . $newFileName;
+
+    if (!move_uploaded_file($file['tmp_name'], $uploadPath)) {
+        json_response(['error' => 'Failed to save file'], 500);
+        exit;
+    }
+
+    $fileUrl = '/roomio/uploads/chat-files/' . $newFileName;
+
+    json_response([
+        'success' => true,
+        'file_url' => $fileUrl,
+        'file_name' => $file['name'],
+        'file_type' => $file['type']
+    ]);
+
+} catch (Exception $e) {
+    error_log("Chat upload error: " . $e->getMessage());
+    json_response(['error' => 'Server error'], 500);
 }
-
-$file = $_FILES['file'];
-$userId = $_SESSION['user_id'];
-
-// Validate file size (max 10MB for chat files)
-if ($file['size'] > 10 * 1024 * 1024) {
-    json_response(['error' => 'File too large. Maximum size is 10MB'], 400);
-}
-
-// Create uploads directory if it doesn't exist
-$uploadDir = '../../uploads/chat-files/';
-if (!is_dir($uploadDir)) {
-    mkdir($uploadDir, 0755, true);
-}
-
-// Generate unique filename
-$extension = pathinfo($file['name'], PATHINFO_EXTENSION);
-$filename = 'chat_' . $userId . '_' . time() . '_' . uniqid() . '.' . $extension;
-$filepath = $uploadDir . $filename;
-
-// Move uploaded file
-if (!move_uploaded_file($file['tmp_name'], $filepath)) {
-    json_response(['error' => 'Failed to save file'], 500);
-}
-
-// Generate public URL
-$publicUrl = Config::getUploadUrl('chat-files/' . $filename);
-
-json_response([
-    'success' => true,
-    'file_url' => $publicUrl
-]);
 ?>

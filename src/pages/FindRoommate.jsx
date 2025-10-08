@@ -5,6 +5,7 @@ import Navbar from "../components/common/Navbar";
 import DarkModeToggle from "../components/common/DarkModeToggle";
 import Button from "../components/common/Button";
 import { useNavigate } from "react-router-dom";
+import LazyImage from "../components/common/LazyImage";
 
 export default function FindRoommate() {
   const { currency } = useCurrency();
@@ -258,11 +259,11 @@ export default function FindRoommate() {
 
           {/* Image Carousel */}
           <div className="mb-6">
-            <img
+            <LazyImage
               src={images[imageIndex] || '/default-room.jpg'}
               alt={post.title || 'Post image'}
               className="w-full h-96 object-cover rounded-xl border-2 border-gray-200 dark:border-gray-700"
-              onError={(e) => { e.target.src = '/default-room.jpg'; }}
+              fallback="/default-room.jpg"
             />
             {images.length > 1 && (
               <>
@@ -285,7 +286,7 @@ export default function FindRoommate() {
                 </div>
                 <div className="flex gap-2 mt-3 overflow-x-auto pb-2">
                   {images.map((img, idx) => (
-                    <img
+                    <LazyImage
                       key={idx}
                       src={img}
                       alt={`Thumbnail ${idx + 1}`}
@@ -293,7 +294,7 @@ export default function FindRoommate() {
                         idx === imageIndex ? 'border-blue-500' : 'border-gray-300'
                       }`}
                       onClick={() => setImageIndex(idx)}
-                      onError={(e) => { e.target.src = '/default-room.jpg'; }}
+                      fallback="/default-room.jpg"
                     />
                   ))}
                 </div>
@@ -482,15 +483,15 @@ export default function FindRoommate() {
             🔍 Find Roommate
           </h1>
 
-          {/* Cards Grid - Responsive */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
+          {/* Cards Grid - Single column on mobile for full image display */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 lg:gap-6 max-w-md mx-auto sm:max-w-none">
             {users.slice(currentIndex, currentIndex + cardsPerPage).map((user) => (
               <div
                 key={user.id}
                 className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] border border-gray-100 dark:border-gray-700 overflow-hidden"
               >
-                {/* Avatar with gradient overlay - Responsive Height */}
-                <div className="relative h-48 sm:h-56 lg:h-60 bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center overflow-hidden">
+                {/* Avatar with gradient overlay - TALL on mobile for full image visibility */}
+                <div className="relative h-96 sm:h-80 lg:h-96 bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center overflow-hidden">
                   {/* Default avatar icon as background placeholder */}
                   {!getUserAvatar(user) && (
                     <div className="absolute inset-0 flex items-center justify-center text-white opacity-60">
@@ -501,15 +502,11 @@ export default function FindRoommate() {
                   )}
 
                   {getUserAvatar(user) && (
-                    <img
+                    <LazyImage
                       src={getUserAvatar(user)}
                       alt={user.full_name}
                       className="w-full h-full object-cover transition-opacity duration-300"
-                      loading="lazy"
-                      onError={(e) => {
-                        e.target.style.display = 'none';
-                        e.target.parentElement.querySelector('.avatar-fallback')?.classList.remove('hidden');
-                      }}
+                      fallback="/default-room.jpg"
                     />
                   )}
 

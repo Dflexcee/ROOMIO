@@ -26,7 +26,7 @@ try {
     $stmt = $pdo->prepare("
         UPDATE rooms
         SET title = ?, description = ?, rent = ?, location = ?,
-            bedrooms = ?, bathrooms = ?, updated_at = NOW()
+            gender_preference = ?, role = ?, conditions = ?, updated_at = NOW()
         WHERE id = ?
     ");
 
@@ -35,8 +35,9 @@ try {
         $input['description'],
         $input['rent'],
         $input['location'],
-        $input['bedrooms'] ?? null,
-        $input['bathrooms'] ?? null,
+        $input['gender_preference'] ?? 'any',
+        $input['role'] ?? null,
+        $input['conditions'] ?? null,
         $room_id
     ]);
 

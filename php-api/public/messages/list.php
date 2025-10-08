@@ -14,6 +14,14 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 
 $userId = $_SESSION['user_id'];
 
+// Pagination parameters for scalability
+$page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+$limit = isset($_GET['limit']) ? min(100, max(1, intval($_GET['limit']))) : 50; // Default 50 messages per page
+$offset = ($page - 1) * $limit;
+
+// Optional conversation filter (get messages with specific user)
+$otherUserId = isset($_GET['user_id']) ? intval($_GET['user_id']) : null;
+
 try {
     // Check which columns exist in messages table
     $stmt = $pdo->query("SHOW COLUMNS FROM messages");
@@ -39,21 +47,57 @@ try {
 
     $selectStr = implode(', ', $selectFields);
 
-    // Get all messages for this user (both sent and received)
-    $stmt = $pdo->prepare("
+    // Build WHERE clause for message filtering
+    $whereConditions = [];
+    $params = [];
+
+    // Filter by conversation with specific user if requested
+    if ($otherUserId) {
+        $whereConditions[] = "((m.sender_id = ? AND m.receiver_id = ?) OR (m.sender_id = ? AND m.receiver_id = ?))";
+        $params = [$userId, $otherUserId, $otherUserId, $userId];
+    } else {
+        $whereConditions[] = "(m.sender_id = ? OR m.receiver_id = ?)";
+        $params = [$userId, $userId];
+    }
+
+    $whereClause = implode(' AND ', $whereConditions);
+
+    // Get total count for pagination metadata
+    $countSql = "SELECT COUNT(*) as total FROM messages m WHERE {$whereClause}";
+    $countStmt = $pdo->prepare($countSql);
+    $countStmt->execute($params);
+    $totalRecords = $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
+    $totalPages = ceil($totalRecords / $limit);
+
+    // Get paginated messages for this user (both sent and received)
+    $sql = "
         SELECT $selectStr
         FROM messages m
         LEFT JOIN users s ON m.sender_id = s.id
         LEFT JOIN users r ON m.receiver_id = r.id
-        WHERE m.sender_id = ? OR m.receiver_id = ?
+        WHERE {$whereClause}
         ORDER BY m.created_at DESC
-    ");
-    $stmt->execute([$userId, $userId]);
+        LIMIT ? OFFSET ?
+    ";
+
+    $params[] = $limit;
+    $params[] = $offset;
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
     $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     json_response([
         'success' => true,
-        'messages' => $messages
+        'messages' => $messages,
+        'pagination' => [
+            'current_page' => $page,
+            'per_page' => $limit,
+            'total_records' => $totalRecords,
+            'total_pages' => $totalPages,
+            'has_next' => $page < $totalPages,
+            'has_prev' => $page > 1
+        ]
     ]);
 
 } catch (PDOException $e) {

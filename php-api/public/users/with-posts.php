@@ -18,6 +18,16 @@ require_once __DIR__ . '/../../bootstrap.php';
 require_once __DIR__ . '/../../config.php';
 
 try {
+    /**
+     * OPTIMIZED QUERY: Fixed N+1 query problem
+     *
+     * Old approach: 1 query for users + N queries for rooms + N queries for listings
+     * New approach: 1 query for users + 1 query for all rooms + 1 query for all listings
+     *
+     * This reduces database roundtrips from (1 + 2N) to just 3 queries total,
+     * dramatically improving performance when there are many users.
+     */
+
     // Get all users who have posted either rooms or listings
     $sql = "
         SELECT DISTINCT
@@ -46,52 +56,86 @@ try {
     $stmt = $pdo->query($sql);
     $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // For each user, get their posts
+    if (empty($users)) {
+        json_response([
+            'success' => true,
+            'users' => [],
+            'total' => 0
+        ]);
+        exit;
+    }
+
+    // Get all user IDs for batch queries
+    $userIds = array_column($users, 'id');
+    $placeholders = implode(',', array_fill(0, count($userIds), '?'));
+
+    // Batch fetch ALL approved rooms for these users in ONE query
+    $roomSql = "
+        SELECT id, user_id, title, description, location, rent, gender_preference,
+               role, images, amenities, status, created_at
+        FROM rooms
+        WHERE user_id IN ($placeholders) AND status = 'approved'
+        ORDER BY created_at DESC
+    ";
+    $roomStmt = $pdo->prepare($roomSql);
+    $roomStmt->execute($userIds);
+    $allRooms = $roomStmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Batch fetch ALL approved listings for these users in ONE query
+    $listingSql = "
+        SELECT id, user_id, type, title, description, price, location,
+               images, specifications, contact_phone, contact_email,
+               status, created_at
+        FROM listings
+        WHERE user_id IN ($placeholders) AND status = 'approved'
+        ORDER BY created_at DESC
+    ";
+    $listingStmt = $pdo->prepare($listingSql);
+    $listingStmt->execute($userIds);
+    $allListings = $listingStmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Group rooms and listings by user_id for efficient lookup
+    $roomsByUser = [];
+    foreach ($allRooms as $room) {
+        // Decode JSON fields
+        if (isset($room['images']) && is_string($room['images'])) {
+            $room['images'] = json_decode($room['images'], true) ?: [];
+        }
+        if (isset($room['amenities']) && is_string($room['amenities'])) {
+            $room['amenities'] = json_decode($room['amenities'], true) ?: [];
+        }
+
+        $userId = $room['user_id'];
+        if (!isset($roomsByUser[$userId])) {
+            $roomsByUser[$userId] = [];
+        }
+        $roomsByUser[$userId][] = $room;
+    }
+
+    $listingsByUser = [];
+    foreach ($allListings as $listing) {
+        // Decode JSON fields
+        if (isset($listing['images']) && is_string($listing['images'])) {
+            $listing['images'] = json_decode($listing['images'], true) ?: [];
+        }
+        if (isset($listing['specifications']) && is_string($listing['specifications'])) {
+            $listing['specifications'] = json_decode($listing['specifications'], true) ?: [];
+        }
+
+        $userId = $listing['user_id'];
+        if (!isset($listingsByUser[$userId])) {
+            $listingsByUser[$userId] = [];
+        }
+        $listingsByUser[$userId][] = $listing;
+    }
+
+    // Attach rooms and listings to each user
     foreach ($users as &$user) {
-        // Get approved rooms
-        $roomStmt = $pdo->prepare("
-            SELECT id, title, description, location, rent, gender_preference,
-                   role, images, amenities, status, created_at
-            FROM rooms
-            WHERE user_id = ? AND status = 'approved'
-            ORDER BY created_at DESC
-        ");
-        $roomStmt->execute([$user['id']]);
-        $rooms = $roomStmt->fetchAll(PDO::FETCH_ASSOC);
+        $userId = $user['id'];
 
-        // Decode JSON fields for rooms
-        foreach ($rooms as &$room) {
-            if (isset($room['images']) && is_string($room['images'])) {
-                $room['images'] = json_decode($room['images'], true) ?: [];
-            }
-            if (isset($room['amenities']) && is_string($room['amenities'])) {
-                $room['amenities'] = json_decode($room['amenities'], true) ?: [];
-            }
-        }
+        $rooms = $roomsByUser[$userId] ?? [];
+        $listings = $listingsByUser[$userId] ?? [];
 
-        // Get approved listings
-        $listingStmt = $pdo->prepare("
-            SELECT id, type, title, description, price, location,
-                   images, specifications, contact_phone, contact_email,
-                   status, created_at
-            FROM listings
-            WHERE user_id = ? AND status = 'approved'
-            ORDER BY created_at DESC
-        ");
-        $listingStmt->execute([$user['id']]);
-        $listings = $listingStmt->fetchAll(PDO::FETCH_ASSOC);
-
-        // Decode JSON fields for listings
-        foreach ($listings as &$listing) {
-            if (isset($listing['images']) && is_string($listing['images'])) {
-                $listing['images'] = json_decode($listing['images'], true) ?: [];
-            }
-            if (isset($listing['specifications']) && is_string($listing['specifications'])) {
-                $listing['specifications'] = json_decode($listing['specifications'], true) ?: [];
-            }
-        }
-
-        // Add to user object
         $user['rooms'] = $rooms;
         $user['listings'] = $listings;
         $user['total_rooms'] = count($rooms);

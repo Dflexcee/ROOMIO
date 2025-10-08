@@ -22,9 +22,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
+require_once __DIR__ . '/../../config.php';
+require_once __DIR__ . '/../../bootstrap.php';
+
 try {
-    $pdo = new PDO('mysql:host=127.0.0.1;dbname=roomio;charset=utf8mb4', 'ruser', 'cord3001');
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    // Use the global $pdo from bootstrap instead of creating new connection
     
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         // Get all currencies

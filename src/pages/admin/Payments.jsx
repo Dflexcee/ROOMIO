@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import PageWrapper from "../../components/common/PageWrapper";
 import config from "../../config/api.js";
+import { useCurrency } from "../../contexts/CurrencyContext";
 
 const FEATURE_OPTIONS = [
   { key: "VIEW_ROOMMATE_PROFILE", label: "View roommate profile" },
@@ -10,6 +11,7 @@ const FEATURE_OPTIONS = [
 ];
 
 export default function Payments() {
+  const { formatCurrency, currencySymbol } = useCurrency();
   const [features, setFeatures] = useState([]);
   const [form, setForm] = useState({
     feature_name: "",
@@ -156,7 +158,7 @@ export default function Payments() {
         </select>
         <input
           type="number"
-          placeholder="Unlock Price (₦)"
+          placeholder={`Unlock Price (${currencySymbol})`}
           value={form.unlock_price}
           onChange={(e) => setForm({ ...form, unlock_price: parseInt(e.target.value) })}
           className="border p-2 w-full mb-2"
@@ -209,7 +211,7 @@ export default function Payments() {
             <thead className="bg-gray-100">
               <tr>
                 <th className="p-2 text-left">Feature</th>
-                <th className="p-2 text-left">Price (₦)</th>
+                <th className="p-2 text-left">Price</th>
                 <th className="p-2 text-left">Duration</th>
                 <th className="p-2 text-left">Status</th>
                 <th className="p-2 text-left">Actions</th>

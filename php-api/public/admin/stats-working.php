@@ -11,20 +11,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 try {
-    // Direct database connection
-    $host = '127.0.0.1';
-    $dbname = 'roomio';
-    $username = 'ruser';
-    $password = 'cord3001';
+    // Database configuration from environment variables for security
+    require_once __DIR__ . '/../../lib/Config.php';
+    $host = Config::get('DB_HOST', 'localhost');
+    $dbname = Config::get('DB_NAME', 'roomio');
+    $username = Config::get('DB_USER', 'root');
+    $password = Config::get('DB_PASS', '');
     $charset = 'utf8mb4';
-    
+
     $dsn = "mysql:host={$host};dbname={$dbname};charset={$charset}";
     $options = [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES => false,
     ];
-    
+
     $pdo = new PDO($dsn, $username, $password, $options);
     
     // Get working stats from database

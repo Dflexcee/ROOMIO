@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import PageWrapper from "../../components/common/PageWrapper";
 import config from "../../config/api.js";
+import { useCurrency } from "../../contexts/CurrencyContext";
 
 function EditUserModal({ open, onClose, onSave, form, onChange, saving }) {
   if (!open) return null;
@@ -61,6 +62,7 @@ function EditUserModal({ open, onClose, onSave, form, onChange, saving }) {
 }
 
 export default function UserAccessManager() {
+  const { formatCurrency } = useCurrency();
   const [users, setUsers] = useState([]);
   const [payments, setPayments] = useState([]);
   const [search, setSearch] = useState("");
@@ -266,7 +268,7 @@ export default function UserAccessManager() {
                   {user.payments && user.payments.length > 0 ? user.payments.map((pay) => (
                     <tr key={pay.payment_id} className="border-t">
                       <td className="p-3 font-medium">{pay.feature_name}</td>
-                      <td className="p-3">₦{pay.unlock_price.toLocaleString()}</td>
+                      <td className="p-3">{formatCurrency(pay.unlock_price || 0)}</td>
                       <td className="p-3">{formatDate(pay.paid_at)}</td>
                       <td className="p-3">{formatDate(pay.expires_at)}</td>
                       <td className="p-3">

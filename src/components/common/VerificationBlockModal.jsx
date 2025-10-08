@@ -167,6 +167,60 @@ export default function VerificationBlockModal({
     );
   }
 
+  // SUSPENDED - Account suspended
+  if (status === 'suspended') {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-md w-full p-8">
+          <div className="text-center">
+            {/* Icon */}
+            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-orange-100 dark:bg-orange-900/30 mb-4">
+              <svg className="h-10 w-10 text-orange-600 dark:text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+              </svg>
+            </div>
+
+            {/* Title */}
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+              Account Suspended
+            </h3>
+
+            {/* Suspension Reason */}
+            {rejectionReason && (
+              <div className="bg-orange-50 dark:bg-orange-900/20 border-2 border-orange-200 dark:border-orange-800 rounded-lg p-4 mb-4">
+                <p className="text-sm text-orange-800 dark:text-orange-300">
+                  <strong>Reason:</strong> {rejectionReason}
+                </p>
+              </div>
+            )}
+
+            {/* Message */}
+            <p className="text-gray-600 dark:text-gray-300 mb-6">
+              Your posting access has been suspended. Please contact support or submit a new verification request to restore access.
+            </p>
+
+            {/* Action Buttons */}
+            <div className="space-y-3">
+              <button
+                onClick={onStartVerification}
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transform transition hover:scale-105"
+              >
+                🔄 Resubmit Verification
+              </button>
+
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="w-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 py-3 px-6 rounded-lg font-semibold hover:bg-gray-300 dark:hover:bg-gray-600"
+              >
+                ← Go to Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Don't show modal if verified
   return null;
 }

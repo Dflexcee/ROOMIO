@@ -4,6 +4,12 @@ import config from "../config/api";
 import Navbar from "../components/common/Navbar";
 import PageWrapper from "../components/common/PageWrapper";
 import { useCurrency } from "../contexts/CurrencyContext";
+import FormInput from "../components/common/FormInput";
+import FormTextArea from "../components/common/FormTextArea";
+import FormSelect from "../components/common/FormSelect";
+import Alert from "../components/common/Alert";
+import LoadingButton from "../components/common/LoadingButton";
+import LoadingSpinner from "../components/common/LoadingSpinner";
 
 export default function EditRoom() {
   const { currency } = useCurrency();
@@ -156,55 +162,43 @@ export default function EditRoom() {
         <div className="max-w-xl mx-auto mt-10 bg-white dark:bg-gray-900 rounded-3xl shadow-2xl p-8 border border-blue-100 dark:border-gray-800 animate-fade-in">
           <h2 className="text-2xl md:text-3xl font-extrabold mb-6 text-blue-700 dark:text-pink-400 text-center">Edit Room</h2>
           {loading ? (
-            <div className="text-center text-gray-500">Loading...</div>
+            <LoadingSpinner size="md" message="Loading..." />
           ) : error ? (
-            <div className="text-center text-red-600 mb-4">{error}</div>
+            <Alert type="error" message={error} onClose={() => setError('')} />
           ) : room ? (
             <form onSubmit={handleSubmit} className="space-y-4">
-              {success && <div className="text-green-600 text-center mb-2">{success}</div>}
-              <div>
-                <label className="block text-gray-700 dark:text-gray-300 mb-1">Title</label>
-                <input
-                  type="text"
-                  name="title"
-                  value={room.title || ""}
-                  onChange={handleChange}
-                  className="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-gray-700 dark:text-gray-300 mb-1">Rent ({currency.currency_symbol})</label>
-                <input
-                  type="number"
-                  name="rent"
-                  value={room.rent || ""}
-                  onChange={handleChange}
-                  className="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-gray-700 dark:text-gray-300 mb-1">Location</label>
-                <input
-                  type="text"
-                  name="location"
-                  value={room.location || ""}
-                  onChange={handleChange}
-                  className="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-gray-700 dark:text-gray-300 mb-1">Description</label>
-                <textarea
-                  name="description"
-                  value={room.description || ""}
-                  onChange={handleChange}
-                  className="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                  rows="4"
-                ></textarea>
-              </div>
+              <Alert type="success" message={success} onClose={() => setSuccess('')} />
+              <FormInput
+                label="Title"
+                type="text"
+                name="title"
+                value={room.title || ""}
+                onChange={handleChange}
+                required
+              />
+              <FormInput
+                label={`Rent (${currency.currency_symbol})`}
+                type="number"
+                name="rent"
+                value={room.rent || ""}
+                onChange={handleChange}
+                required
+              />
+              <FormInput
+                label="Location"
+                type="text"
+                name="location"
+                value={room.location || ""}
+                onChange={handleChange}
+                required
+              />
+              <FormTextArea
+                label="Description"
+                name="description"
+                value={room.description || ""}
+                onChange={handleChange}
+                rows={4}
+              />
               {/* Images Section */}
               <div>
                 <label className="block text-gray-700 dark:text-gray-300 mb-1">Images</label>
@@ -262,26 +256,26 @@ export default function EditRoom() {
                 />
                 {uploading && <div className="text-blue-600 text-xs">Uploading images...</div>}
               </div>
-              <div>
-                <label className="block text-gray-700 dark:text-gray-300 mb-1">Status</label>
-                <select
-                  name="status"
-                  value={room.status || "pending"}
-                  onChange={handleChange}
-                  className="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                >
-                  <option value="pending">Pending</option>
-                  <option value="approved">Approved</option>
-                  <option value="flagged">Flagged</option>
-                </select>
-              </div>
-              <button
+              <FormSelect
+                label="Status"
+                name="status"
+                value={room.status || "pending"}
+                onChange={handleChange}
+                options={[
+                  { value: 'pending', label: 'Pending' },
+                  { value: 'approved', label: 'Approved' },
+                  { value: 'flagged', label: 'Flagged' }
+                ]}
+              />
+              <LoadingButton
                 type="submit"
-                disabled={loading}
-                className="w-full bg-gradient-to-r from-pink-500 to-yellow-500 dark:from-blue-700 dark:to-purple-700 text-white px-8 py-3 rounded-full shadow-lg hover:scale-105 hover:from-pink-600 hover:to-yellow-600 dark:hover:from-blue-800 dark:hover:to-purple-800 transition-all text-lg font-semibold disabled:opacity-60"
+                loading={loading}
+                loadingText="Saving..."
+                variant="primary"
+                className="w-full bg-gradient-to-r from-pink-500 to-yellow-500 dark:from-blue-700 dark:to-purple-700 text-lg"
               >
-                {loading ? "Saving..." : "Save Changes"}
-              </button>
+                Save Changes
+              </LoadingButton>
             </form>
           ) : null}
         </div>

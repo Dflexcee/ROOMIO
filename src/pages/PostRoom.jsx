@@ -6,6 +6,11 @@ import DarkModeToggle from '../components/common/DarkModeToggle';
 import config from '../config/api';
 import VerificationBlockModal from '../components/common/VerificationBlockModal';
 import VerificationFormNew from '../components/user/VerificationFormNew';
+import FormInput from '../components/common/FormInput';
+import FormTextArea from '../components/common/FormTextArea';
+import FormSelect from '../components/common/FormSelect';
+import Alert from '../components/common/Alert';
+import LoadingButton from '../components/common/LoadingButton';
 
 export default function PostRoom() {
   const { user } = useAuth();
@@ -53,16 +58,33 @@ export default function PostRoom() {
         const data = await response.json();
         const userData = data.user || data;
 
-        // Check if user can post rooms
-        if (userData.can_post_rooms === 0) {
+        // Block if not verified OR can't post rooms
+        const userIsVerified = userData.is_verified === 1 && userData.verification_status === 'verified';
+
+        if (!userIsVerified || userData.can_post_rooms === 0) {
           setIsBlocked(true);
 
           // Determine verification status
-          const status = userData.verification_status || 'unverified';
+          const status = userData.verification_status || 'pending';
           setVerificationStatus(status);
 
-          if (status === 'rejected') {
-            setRejectionReason(userData.rejection_reason || 'Your verification was rejected. Please submit a new verification.');
+          // Fetch verification details to get admin message
+          try {
+            const verifyResponse = await fetch(config.getUrl('/verification/status.php'), {
+              credentials: 'include'
+            });
+            const verifyData = await verifyResponse.json();
+            if (verifyData.success && verifyData.verification) {
+              // Set status from verification data (more accurate)
+              setVerificationStatus(verifyData.verification.status || status);
+
+              // Get admin message if exists
+              if (verifyData.verification.admin_message) {
+                setRejectionReason(verifyData.verification.admin_message);
+              }
+            }
+          } catch (err) {
+            console.error('Error fetching verification details:', err);
           }
         } else {
           setIsBlocked(false);
@@ -70,11 +92,9 @@ export default function PostRoom() {
       }
     } catch (error) {
       console.error('Error checking verification:', error);
-      // If user object says they can't post, block them
-      if (user.can_post_rooms === 0) {
-        setIsBlocked(true);
-        setVerificationStatus(user.verification_status || 'unverified');
-      }
+      // Default to blocking if we can't verify
+      setIsBlocked(true);
+      setVerificationStatus(user.verification_status || 'pending');
     }
   };
 
@@ -190,58 +210,55 @@ export default function PostRoom() {
         <div className="w-full max-w-3xl mx-auto bg-white dark:bg-gray-900 rounded-3xl shadow-2xl p-8 border border-blue-100 dark:border-gray-800 animate-fade-in">
           <h2 className="text-2xl md:text-3xl font-extrabold mb-6 text-blue-700 dark:text-pink-400 drop-shadow-sm transition-all duration-300 text-center">✍️ Post a Room</h2>
 
-          {error && <div className="text-red-600 mb-2 text-center">{error}</div>}
+          <Alert type="error" message={error} onClose={() => setError('')} />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <input
+              <FormInput
                 type="text"
                 placeholder="Room Title"
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
-                className="border p-2 rounded bg-gray-50 dark:bg-gray-700 dark:text-white"
               />
-              <input
+              <FormInput
                 type="number"
                 placeholder={`Rent (${currency.currency_symbol})`}
                 value={form.rent}
                 onChange={(e) => setForm({ ...form, rent: e.target.value })}
-                className="border p-2 rounded bg-gray-50 dark:bg-gray-700 dark:text-white"
               />
-              <input
+              <FormInput
                 type="text"
                 placeholder="Location"
                 value={form.location}
                 onChange={(e) => setForm({ ...form, location: e.target.value })}
-                className="border p-2 rounded bg-gray-50 dark:bg-gray-700 dark:text-white"
               />
-              <select
+              <FormSelect
                 value={form.gender_preference}
                 onChange={(e) => setForm({ ...form, gender_preference: e.target.value })}
-                className="border p-2 rounded bg-gray-50 dark:bg-gray-700 dark:text-white"
-              >
-                <option value="">Gender Preference</option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="any">Any</option>
-              </select>
-              <select
+                options={[
+                  { value: 'male', label: 'Male' },
+                  { value: 'female', label: 'Female' },
+                  { value: 'any', label: 'Any' }
+                ]}
+                placeholder="Gender Preference"
+              />
+              <FormSelect
                 value={form.role}
                 onChange={(e) => setForm({ ...form, role: e.target.value })}
-                className="border p-2 rounded bg-gray-50 dark:bg-gray-700 dark:text-white"
-              >
-                <option value="">Your Role</option>
-                <option value="tenant">Tenant</option>
-                <option value="agent">Agent</option>
-                <option value="landlord">Landlord</option>
-              </select>
+                options={[
+                  { value: 'tenant', label: 'Tenant' },
+                  { value: 'agent', label: 'Agent' },
+                  { value: 'landlord', label: 'Landlord' }
+                ]}
+                placeholder="Your Role"
+              />
             </div>
-            <textarea
+            <FormTextArea
               placeholder="Room Description"
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
-              className="border p-2 w-full mb-3 rounded bg-gray-50 dark:bg-gray-700 dark:text-white"
+              className="mb-3"
               rows={3}
-            ></textarea>
+            />
             {/* Image Upload Fields - 4 Individual Upload Fields */}
             <div className="mb-4">
               <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">
@@ -290,13 +307,13 @@ export default function PostRoom() {
                 ))}
               </div>
             </div>
-            <textarea
+            <FormTextArea
               placeholder="Any special conditions?"
               value={form.conditions}
               onChange={(e) => setForm({ ...form, conditions: e.target.value })}
-              className="border p-2 w-full mb-4 rounded bg-gray-50 dark:bg-gray-700 dark:text-white"
+              className="mb-4"
               rows={2}
-            ></textarea>
+            />
             {submitting && (
               <div className="w-full mb-4">
                 <div className="bg-gray-200 rounded-full h-4">
@@ -308,13 +325,15 @@ export default function PostRoom() {
                 <div className="text-center text-sm mt-1 text-blue-700">{uploadProgress}%</div>
               </div>
             )}
-            <button
+            <LoadingButton
               onClick={handleSubmit}
-              disabled={submitting}
-              className="bg-gradient-to-r from-green-500 to-blue-600 dark:from-blue-700 dark:to-purple-700 text-white px-6 py-2 rounded-full shadow-lg hover:scale-105 transition text-lg font-semibold w-full disabled:opacity-60"
+              loading={submitting}
+              loadingText="Submitting..."
+              variant="primary"
+              className="bg-gradient-to-r from-green-500 to-blue-600 dark:from-blue-700 dark:to-purple-700 w-full text-lg"
             >
-              {submitting ? "Submitting..." : "Submit Room"}
-            </button>
+              Submit Room
+            </LoadingButton>
         </div>
       </div>
     </div>

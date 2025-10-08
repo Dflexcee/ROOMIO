@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from "react";
 import PageWrapper from "../../components/common/PageWrapper";
+import FormInput from "../../components/common/FormInput";
+import Alert from "../../components/common/Alert";
+import LoadingButton from "../../components/common/LoadingButton";
+import LoadingSpinner from "../../components/common/LoadingSpinner";
 import adminConfig from "../../config/adminConfig";
 import config from "../../config/api.js";
 
@@ -82,9 +86,7 @@ export default function SMTPSettings() {
   if (loading) {
     return (
       <PageWrapper>
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
+        <LoadingSpinner size="md" message="Loading SMTP settings..." />
       </PageWrapper>
     );
   }
@@ -96,112 +98,66 @@ export default function SMTPSettings() {
           <h2 className="text-2xl font-bold">📧 SMTP Settings</h2>
         </div>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded mb-4">
-            {error}
-          </div>
-        )}
-
-        {success && (
-          <div className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded mb-4">
-            {success}
-          </div>
-        )}
+        <Alert type="error" message={error} />
+        <Alert type="success" message={success} />
 
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                SMTP Host
-              </label>
-              <input
-                type="text"
-                value={settings.host}
-                onChange={(e) => setSettings({ ...settings, host: e.target.value })}
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                placeholder={`e.g., ${adminConfig.getSMTPExamples().host}`}
-                required
-              />
-            </div>
+            <FormInput
+              label="SMTP Host"
+              type="text"
+              value={settings.host}
+              onChange={(e) => setSettings({ ...settings, host: e.target.value })}
+              placeholder={`e.g., ${adminConfig.getSMTPExamples().host}`}
+              required
+            />
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                SMTP Port
-              </label>
-              <input
-                type="number"
-                value={settings.port}
-                onChange={(e) => setSettings({ ...settings, port: e.target.value })}
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                placeholder="e.g., 587"
-                required
-              />
-            </div>
+            <FormInput
+              label="SMTP Port"
+              type="number"
+              value={settings.port}
+              onChange={(e) => setSettings({ ...settings, port: e.target.value })}
+              placeholder="e.g., 587"
+              required
+            />
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Username
-              </label>
-              <input
-                type="text"
-                value={settings.username}
-                onChange={(e) => setSettings({ ...settings, username: e.target.value })}
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                placeholder="SMTP username"
-                required
-              />
-            </div>
+            <FormInput
+              label="Username"
+              type="text"
+              value={settings.username}
+              onChange={(e) => setSettings({ ...settings, username: e.target.value })}
+              placeholder="SMTP username"
+              required
+            />
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Password
-              </label>
-              <input
-                type="password"
-                value={settings.password}
-                onChange={(e) => setSettings({ ...settings, password: e.target.value })}
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                placeholder="SMTP password"
-                required
-              />
-            </div>
+            <FormInput
+              label="Password"
+              type="password"
+              value={settings.password}
+              onChange={(e) => setSettings({ ...settings, password: e.target.value })}
+              placeholder="SMTP password"
+              required
+            />
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                From Email
-              </label>
-              <input
-                type="email"
-                value={settings.from_email}
-                onChange={(e) => setSettings({ ...settings, from_email: e.target.value })}
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                placeholder={`e.g., ${adminConfig.getSMTPExamples().fromEmail}`}
-                required
-              />
-            </div>
+            <FormInput
+              label="From Email"
+              type="email"
+              value={settings.from_email}
+              onChange={(e) => setSettings({ ...settings, from_email: e.target.value })}
+              placeholder={`e.g., ${adminConfig.getSMTPExamples().fromEmail}`}
+              required
+            />
 
             <div className="flex justify-end">
-              <button
+              <LoadingButton
                 type="submit"
-                disabled={saving}
-                className={`px-4 py-2 rounded-md text-white font-medium
-                  ${saving 
-                    ? 'bg-blue-400 cursor-not-allowed' 
-                    : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
-                  }`}
+                loading={saving}
+                loadingText="Saving..."
+                variant="primary"
+                className="px-4 py-2"
               >
-                {saving ? (
-                  <span className="flex items-center">
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Saving...
-                  </span>
-                ) : (
-                  'Save Settings'
-                )}
-              </button>
+                Save Settings
+              </LoadingButton>
             </div>
           </form>
         </div>
@@ -209,20 +165,21 @@ export default function SMTPSettings() {
         <div className="bg-white rounded-lg shadow-lg overflow-hidden mt-6">
           <div className="p-6 space-y-4">
             <h3 className="text-lg font-semibold">Send Test Email</h3>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Recipient Email</label>
-              <input
-                type="email"
-                value={testEmail}
-                onChange={(e) => setTestEmail(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                placeholder="you@example.com"
-              />
-            </div>
+            <FormInput
+              label="Recipient Email"
+              type="email"
+              value={testEmail}
+              onChange={(e) => setTestEmail(e.target.value)}
+              placeholder="you@example.com"
+            />
             <div className="flex justify-end">
-              <button
+              <LoadingButton
                 type="button"
-                disabled={testing || !testEmail}
+                disabled={!testEmail}
+                loading={testing}
+                loadingText="Sending..."
+                variant="success"
+                className="px-4 py-2"
                 onClick={async () => {
                   setError("");
                   setSuccess("");
@@ -248,10 +205,9 @@ export default function SMTPSettings() {
                     setTesting(false);
                   }
                 }}
-                className={`px-4 py-2 rounded-md text-white font-medium ${testing ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
               >
-                {testing ? 'Sending...' : 'Send Test Email'}
-              </button>
+                Send Test Email
+              </LoadingButton>
             </div>
           </div>
         </div>

@@ -4,6 +4,7 @@ import Navbar from "../components/common/Navbar";
 import DarkModeToggle from "../components/common/DarkModeToggle";
 import config from "../config/api";
 import { useCurrency } from "../contexts/CurrencyContext";
+import LazyImage from "../components/common/LazyImage";
 
 const PAGE_SIZE = 12;
 
@@ -86,7 +87,7 @@ export default function ViewListings() {
           </button>
 
           <div className="mb-6">
-            <img
+            <LazyImage
               src={images[imageIndex]}
               alt={listing.title}
               className="w-full h-96 object-cover rounded-lg border-4 border-blue-200 dark:border-pink-400"
@@ -112,7 +113,7 @@ export default function ViewListings() {
                 </div>
                 <div className="flex gap-2 mt-3 overflow-x-auto pb-2">
                   {images.map((img, idx) => (
-                    <img
+                    <LazyImage
                       key={idx}
                       src={img}
                       alt={`Thumbnail ${idx + 1}`}
@@ -155,7 +156,7 @@ export default function ViewListings() {
           {(listing.poster_name || listing.poster_avatar) && (
             <div className="flex items-center gap-3 mb-4 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg">
               {listing.poster_avatar && (
-                <img
+                <LazyImage
                   src={listing.poster_avatar}
                   alt={listing.poster_name || 'Poster'}
                   className="w-12 h-12 rounded-full object-cover border-2 border-gray-300"
@@ -282,7 +283,7 @@ export default function ViewListings() {
                     key={listing.id}
                     className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden hover:scale-105 transition-transform border border-blue-100 dark:border-gray-700"
                   >
-                    <img
+                    <LazyImage
                       src={
                         Array.isArray(listing.images) && listing.images.length > 0
                           ? listing.images[0]
@@ -290,6 +291,7 @@ export default function ViewListings() {
                       }
                       alt={listing.title}
                       className="w-full h-48 object-cover"
+                      fallback="/default-listing.jpg"
                     />
                     <div className="p-4">
                       <div className="mb-2">
@@ -309,7 +311,7 @@ export default function ViewListings() {
                       {(listing.poster_name || listing.poster_avatar) && (
                         <div className="flex items-center gap-2 mb-3">
                           {listing.poster_avatar && (
-                            <img
+                            <LazyImage
                               src={listing.poster_avatar}
                               alt={listing.poster_name}
                               className="w-6 h-6 rounded-full object-cover"

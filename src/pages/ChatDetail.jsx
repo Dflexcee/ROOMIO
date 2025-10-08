@@ -1,21 +1,23 @@
 import React, { useEffect, useState, useRef } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import PageWrapper from "../components/common/PageWrapper";
 import Navbar from "../components/common/Navbar";
 import DarkModeToggle from "../components/common/DarkModeToggle";
 import { Picker } from "emoji-mart";
-import { FaPaperclip, FaFilePdf, FaFileWord, FaFileExcel, FaFileArchive, FaFileAlt, FaFileAudio, FaFileVideo, FaFileImage } from 'react-icons/fa';
+import { FaPaperclip, FaFilePdf, FaFileWord, FaFileExcel, FaFileArchive, FaFileAlt, FaFileAudio, FaFileVideo, FaFileImage, FaArrowLeft } from 'react-icons/fa';
 import config from "../config/api.js";
 
 export default function ChatDetail() {
   const { userId: targetUserId } = useParams();
+  const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const [targetUser, setTargetUser] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [showEmoji, setShowEmoji] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const messagesEndRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
@@ -33,7 +35,7 @@ export default function ChatDetail() {
   useEffect(() => {
     if (user && targetUserId) {
       fetchMessages();
-      const interval = setInterval(fetchMessages, 3000); // Simple polling
+      const interval = setInterval(() => fetchMessages(true), 3000); // Poll with refresh indicator
       return () => clearInterval(interval);
     }
   }, [user, targetUserId]);
@@ -59,16 +61,21 @@ export default function ChatDetail() {
     }
   };
 
-  const fetchMessages = async () => {
+  const fetchMessages = async (showRefreshIndicator = false) => {
     if (!user || !targetUserId) return;
-    
-    setLoading(true);
+
+    if (showRefreshIndicator) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+
     try {
       const response = await fetch(config.getUrl(`/messages/list.php?sender_id=${user.id}&receiver_id=${targetUserId}`), {
         credentials: 'include'
       });
       const data = await response.json();
-      
+
       if (response.ok) {
         setMessages(data.messages || []);
       }
@@ -76,6 +83,7 @@ export default function ChatDetail() {
       console.error('Error fetching messages:', error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -219,23 +227,52 @@ export default function ChatDetail() {
       </div>
       <Navbar />
       <PageWrapper>
-        <div className="max-w-4xl mx-auto py-8 px-4">
-          <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl border border-blue-100 dark:border-gray-800 h-[600px] flex flex-col">
+        <div className="max-w-4xl mx-auto py-4 md:py-8 px-2 md:px-4">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl md:rounded-3xl shadow-2xl border border-blue-100 dark:border-gray-800 h-[calc(100vh-120px)] md:h-[600px] flex flex-col">
             {/* Chat Header */}
-            <div className="bg-blue-600 dark:bg-blue-800 text-white p-4 rounded-t-3xl flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
-                  <span className="text-blue-600 font-bold text-lg">
-                    {targetUser?.full_name?.charAt(0) || 'U'}
-                  </span>
+            <div className="bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-800 dark:to-purple-800 text-white p-3 md:p-4 rounded-t-2xl md:rounded-t-3xl flex items-center justify-between shadow-lg">
+              <div className="flex items-center space-x-2 md:space-x-3">
+                <button
+                  onClick={() => navigate('/dashboard')}
+                  className="p-2 hover:bg-white/10 rounded-full transition-colors"
+                  title="Back to Dashboard"
+                >
+                  <FaArrowLeft className="text-lg md:text-xl" />
+                </button>
+                <div className="w-10 h-10 md:w-12 md:h-12 bg-white rounded-full flex items-center justify-center overflow-hidden">
+                  {targetUser?.avatar_url ? (
+                    <img
+                      src={targetUser.avatar_url}
+                      alt={targetUser.full_name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-blue-600 font-bold text-lg md:text-xl">
+                      {targetUser?.full_name?.charAt(0) || 'U'}
+                    </span>
+                  )}
                 </div>
                 <div>
-                  <h3 className="font-semibold">{targetUser?.full_name || 'User'}</h3>
-                  <p className="text-sm opacity-75">Online</p>
+                  <h3 className="font-semibold text-sm md:text-base">{targetUser?.full_name || 'User'}</h3>
+                  <p className="text-xs md:text-sm opacity-75 flex items-center">
+                    {refreshing ? (
+                      <>
+                        <span className="inline-block w-2 h-2 bg-yellow-400 rounded-full mr-2 animate-pulse"></span>
+                        Updating...
+                      </>
+                    ) : (
+                      <>
+                        <span className="inline-block w-2 h-2 bg-green-400 rounded-full mr-2"></span>
+                        Online
+                      </>
+                    )}
+                  </p>
                 </div>
               </div>
               {otherTyping && (
-                <div className="text-sm opacity-75">typing...</div>
+                <div className="text-xs md:text-sm opacity-75 flex items-center">
+                  <span className="animate-pulse">typing...</span>
+                </div>
               )}
             </div>
 

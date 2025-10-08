@@ -27,15 +27,16 @@ if ($input['sender_id'] != $userId) {
 
 try {
     $stmt = $pdo->prepare("
-        INSERT INTO messages (sender_id, receiver_id, content, file_name, file_type, created_at) 
-        VALUES (?, ?, ?, ?, ?, NOW())
+        INSERT INTO messages (sender_id, receiver_id, content, file_name, file_type, file_url, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, NOW())
     ");
     $stmt->execute([
         $input['sender_id'],
         $input['receiver_id'],
         $input['content'] ?? '',
         $input['file_name'] ?? null,
-        $input['file_type'] ?? null
+        $input['file_type'] ?? null,
+        $input['file_url'] ?? null
     ]);
     
     $messageId = $pdo->lastInsertId();

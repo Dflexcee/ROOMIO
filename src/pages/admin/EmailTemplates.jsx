@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
 import PageWrapper from "../../components/common/PageWrapper";
 import EditTemplateModal from "../../components/admin/EditTemplateModal";
+import FormInput from "../../components/common/FormInput";
+import Alert from "../../components/common/Alert";
+import LoadingButton from "../../components/common/LoadingButton";
 import adminConfig from "../../config/adminConfig";
 import config from "../../config/api.js";
 
@@ -51,7 +54,7 @@ export default function EmailTemplates() {
 
   return (
     <PageWrapper>
-      {error && <div className="bg-red-100 text-red-700 p-2 mb-4 rounded">{error}</div>}
+      <Alert type="error" message={error} />
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold">📧 Email Templates</h2>
         <button
@@ -63,13 +66,13 @@ export default function EmailTemplates() {
       </div>
 
       <div className="mb-4">
-        <label className="block text-sm font-medium mb-1">Test Email Address</label>
-        <input
+        <FormInput
+          label="Test Email Address"
           type="email"
           value={testEmail}
           onChange={(e) => setTestEmail(e.target.value)}
           placeholder="Enter email to test templates"
-          className="border p-2 rounded w-full max-w-md"
+          className="max-w-md"
         />
       </div>
 
@@ -98,13 +101,16 @@ export default function EmailTemplates() {
                   >
                     ✏️ Edit
                   </button>
-                  <button
+                  <LoadingButton
                     onClick={() => sendTestEmail(tpl)}
-                    disabled={sendingTest || !testEmail}
-                    className="bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700 disabled:opacity-50"
+                    disabled={!testEmail}
+                    loading={sendingTest}
+                    loadingText="Sending..."
+                    variant="primary"
+                    className="px-3 py-1 text-sm bg-purple-600 hover:bg-purple-700"
                   >
-                    {sendingTest ? "Sending..." : "📧 Test"}
-                  </button>
+                    📧 Test
+                  </LoadingButton>
                 </td>
               </tr>
             ))}

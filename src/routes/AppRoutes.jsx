@@ -18,11 +18,12 @@ import HelpCenter from "../pages/HelpCenter";
 import MyRooms from "../pages/MyRooms";
 import EditRoom from "../pages/EditRoom";
 import Inbox from "../pages/Inbox";
-import ChatDetail from "../pages/ChatDetail";
+import ChatDetail from "../pages/ChatDetailModern";
 import PostListing from "../pages/PostListing";
 import ViewListings from "../pages/ViewListings";
 import MyListings from "../pages/MyListings";
 import EditListing from "../pages/EditListing";
+import Verification from "../pages/Verification";
 
 // Protected Route component
 const ProtectedRoute = ({ children }) => {
@@ -72,6 +73,7 @@ export default function AppRoutes() {
       <Route path="/view-listings" element={<ProtectedRoute><ViewListings /></ProtectedRoute>} />
       <Route path="/my-listings" element={<ProtectedRoute><MyListings /></ProtectedRoute>} />
       <Route path="/edit-listing/:id" element={<ProtectedRoute><EditListing /></ProtectedRoute>} />
+      <Route path="/verification" element={<ProtectedRoute><Verification /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );

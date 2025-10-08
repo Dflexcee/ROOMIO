@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import config from "../../config/api";
+import { useCurrency } from "../../contexts/CurrencyContext";
 
 export default function PaywallPrompt({ userId, feature, onClose }) {
+  const { formatCurrency } = useCurrency();
   const [featureInfo, setFeatureInfo] = useState(null);
 
   useEffect(() => {
@@ -41,7 +43,7 @@ export default function PaywallPrompt({ userId, feature, onClose }) {
           The feature <strong>{featureInfo.feature_name}</strong> is locked.
         </p>
         <p className="text-lg font-semibold text-blue-700 mb-4">
-          Unlock it for ₦{featureInfo.unlock_price} / {featureInfo.duration_value} {featureInfo.duration_type}
+          Unlock it for {formatCurrency(featureInfo.unlock_price || 0)} / {featureInfo.duration_value} {featureInfo.duration_type}
         </p>
         <div className="flex justify-center gap-4">
           <button

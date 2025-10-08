@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
 import PageWrapper from "../../components/common/PageWrapper";
 import config from "../../config/api.js";
+import { useCurrency } from "../../contexts/CurrencyContext";
 
 export default function RoomListings() {
+  const { formatCurrency } = useCurrency();
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -84,8 +86,11 @@ export default function RoomListings() {
       description: room.description || '',
       rent: room.rent,
       location: room.location,
-      bedrooms: room.bedrooms || '',
-      bathrooms: room.bathrooms || ''
+      gender_preference: room.gender_preference || 'any',
+      role: room.role || '',
+      conditions: room.conditions || '',
+      images: Array.isArray(room.images) ? room.images : [],
+      amenities: Array.isArray(room.amenities) ? room.amenities : []
     });
     setShowEditModal(true);
   };
@@ -299,7 +304,7 @@ export default function RoomListings() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900 dark:text-white">
-                          ₦{parseFloat(room.rent || 0).toLocaleString()}
+                          {formatCurrency(room.rent || 0)}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -418,7 +423,30 @@ export default function RoomListings() {
               <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
                 Edit Room
               </h3>
-              <div className="space-y-4">
+              <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+                {/* Images Display */}
+                {editFormData.images && editFormData.images.length > 0 && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Current Images
+                    </label>
+                    <div className="flex gap-2 flex-wrap">
+                      {editFormData.images.map((img, idx) => (
+                        <img
+                          key={idx}
+                          src={img.startsWith('http') ? img : `http://localhost${img}`}
+                          alt={`Room ${idx + 1}`}
+                          className="w-20 h-20 object-cover rounded border"
+                          onError={(e) => {
+                            e.target.src = '/default-room.jpg';
+                            e.target.onerror = null;
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Title
@@ -472,28 +500,45 @@ export default function RoomListings() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Bedrooms
+                      Gender Preference
                     </label>
-                    <input
-                      type="number"
-                      value={editFormData.bedrooms || ''}
-                      onChange={(e) => setEditFormData({...editFormData, bedrooms: e.target.value})}
+                    <select
+                      value={editFormData.gender_preference || 'any'}
+                      onChange={(e) => setEditFormData({...editFormData, gender_preference: e.target.value})}
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg
                                bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    />
+                    >
+                      <option value="any">Any</option>
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                    </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Bathrooms
+                      Role
                     </label>
                     <input
-                      type="number"
-                      value={editFormData.bathrooms || ''}
-                      onChange={(e) => setEditFormData({...editFormData, bathrooms: e.target.value})}
+                      type="text"
+                      value={editFormData.role || ''}
+                      onChange={(e) => setEditFormData({...editFormData, role: e.target.value})}
+                      placeholder="e.g., Student, Professional"
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg
                                bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     />
                   </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Conditions
+                  </label>
+                  <textarea
+                    value={editFormData.conditions || ''}
+                    onChange={(e) => setEditFormData({...editFormData, conditions: e.target.value})}
+                    rows="2"
+                    placeholder="Any special conditions or requirements"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg
+                             bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  />
                 </div>
               </div>
               <div className="flex justify-end space-x-3 mt-6">

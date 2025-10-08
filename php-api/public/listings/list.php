@@ -18,8 +18,54 @@ $minPrice = isset($_GET['minPrice']) ? floatval($_GET['minPrice']) : 0;
 $maxPrice = isset($_GET['maxPrice']) ? floatval($_GET['maxPrice']) : 0;
 $location = isset($_GET['location']) ? trim($_GET['location']) : '';
 
+// Pagination parameters for scalability
+$page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+$limit = isset($_GET['limit']) ? min(100, max(1, intval($_GET['limit']))) : 20; // Max 100 per page
+$offset = ($page - 1) * $limit;
+
 try {
-    // Build query
+    // Build WHERE clause for filtering
+    $whereConditions = ["l.status = 'approved'"];
+    $params = [];
+
+    if ($type && in_array($type, ['land', 'house', 'car', 'other'])) {
+        $whereConditions[] = "l.type = ?";
+        $params[] = $type;
+    }
+
+    if ($search) {
+        $whereConditions[] = "(l.title LIKE ? OR l.description LIKE ? OR l.location LIKE ?)";
+        $searchTerm = "%{$search}%";
+        $params[] = $searchTerm;
+        $params[] = $searchTerm;
+        $params[] = $searchTerm;
+    }
+
+    if ($location) {
+        $whereConditions[] = "l.location LIKE ?";
+        $params[] = "%{$location}%";
+    }
+
+    if ($minPrice > 0) {
+        $whereConditions[] = "l.price >= ?";
+        $params[] = $minPrice;
+    }
+
+    if ($maxPrice > 0) {
+        $whereConditions[] = "l.price <= ?";
+        $params[] = $maxPrice;
+    }
+
+    $whereClause = implode(' AND ', $whereConditions);
+
+    // Get total count for pagination metadata
+    $countSql = "SELECT COUNT(*) as total FROM listings l WHERE {$whereClause}";
+    $countStmt = $pdo->prepare($countSql);
+    $countStmt->execute($params);
+    $totalRecords = $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
+    $totalPages = ceil($totalRecords / $limit);
+
+    // Get paginated listings
     $sql = "
         SELECT
             l.*,
@@ -29,40 +75,13 @@ try {
             u.phone as poster_phone
         FROM listings l
         LEFT JOIN users u ON l.user_id = u.id
-        WHERE l.status = 'approved'
+        WHERE {$whereClause}
+        ORDER BY l.created_at DESC
+        LIMIT ? OFFSET ?
     ";
 
-    $params = [];
-
-    if ($type && in_array($type, ['land', 'house', 'car', 'other'])) {
-        $sql .= " AND l.type = ?";
-        $params[] = $type;
-    }
-
-    if ($search) {
-        $sql .= " AND (l.title LIKE ? OR l.description LIKE ? OR l.location LIKE ?)";
-        $searchTerm = "%{$search}%";
-        $params[] = $searchTerm;
-        $params[] = $searchTerm;
-        $params[] = $searchTerm;
-    }
-
-    if ($location) {
-        $sql .= " AND l.location LIKE ?";
-        $params[] = "%{$location}%";
-    }
-
-    if ($minPrice > 0) {
-        $sql .= " AND l.price >= ?";
-        $params[] = $minPrice;
-    }
-
-    if ($maxPrice > 0) {
-        $sql .= " AND l.price <= ?";
-        $params[] = $maxPrice;
-    }
-
-    $sql .= " ORDER BY l.created_at DESC";
+    $params[] = $limit;
+    $params[] = $offset;
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
@@ -81,6 +100,14 @@ try {
     json_response([
         'success' => true,
         'listings' => $listings,
+        'pagination' => [
+            'current_page' => $page,
+            'per_page' => $limit,
+            'total_records' => $totalRecords,
+            'total_pages' => $totalPages,
+            'has_next' => $page < $totalPages,
+            'has_prev' => $page > 1
+        ],
         'total' => count($listings)
     ]);
 

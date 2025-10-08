@@ -4,6 +4,9 @@ import Navbar from "../components/common/Navbar";
 import DarkModeToggle from "../components/common/DarkModeToggle";
 import config from "../config/api";
 import { useCurrency } from "../contexts/CurrencyContext";
+import Alert from "../components/common/Alert";
+import LoadingSpinner from "../components/common/LoadingSpinner";
+import LazyImage from "../components/common/LazyImage";
 
 export default function MyListings() {
   const { currency } = useCurrency();
@@ -107,7 +110,7 @@ export default function MyListings() {
           </button>
 
           <div className="mb-6">
-            <img
+            <LazyImage
               src={images[imageIndex]}
               alt={listing.title}
               className="w-full h-96 object-cover rounded-lg border-4 border-blue-200 dark:border-pink-400"
@@ -133,7 +136,7 @@ export default function MyListings() {
                 </div>
                 <div className="flex gap-2 mt-3 overflow-x-auto pb-2">
                   {images.map((img, idx) => (
-                    <img
+                    <LazyImage
                       key={idx}
                       src={img}
                       alt={`Thumbnail ${idx + 1}`}
@@ -279,17 +282,10 @@ export default function MyListings() {
             </div>
           </div>
 
-          {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-              {error}
-            </div>
-          )}
+          <Alert type="error" message={error} onClose={() => setError(null)} />
 
           {loading ? (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-              <p className="mt-4 text-gray-600 dark:text-gray-400">Loading your listings...</p>
-            </div>
+            <LoadingSpinner size="md" message="Loading your listings..." />
           ) : listings.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-gray-500 dark:text-gray-400 mb-4 text-lg">You haven't posted any listings yet</p>
@@ -309,7 +305,7 @@ export default function MyListings() {
                 >
                   <div className="relative">
                     {Array.isArray(listing.images) && listing.images.length > 0 ? (
-                      <img
+                      <LazyImage
                         src={listing.images[0]}
                         alt={listing.title}
                         className="w-full h-48 object-cover"

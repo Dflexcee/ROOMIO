@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import PageWrapper from '../../components/common/PageWrapper';
 import config from '../../config/api.js';
+import LazyImage from '../../components/common/LazyImage';
 
 export default function VerificationManagement() {
   const [users, setUsers] = useState([]);
@@ -292,7 +293,7 @@ export default function VerificationManagement() {
                         <div className="flex items-center">
                           <div className="h-10 w-10 flex-shrink-0">
                             {user.avatar_url ? (
-                              <img
+                              <LazyImage
                                 className="h-10 w-10 rounded-full object-cover"
                                 src={user.avatar_url}
                                 alt={user.full_name}
@@ -485,10 +486,10 @@ export default function VerificationManagement() {
 
         {/* Verification Details Modal */}
         {showVerificationDetails && viewingVerification && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
-            <div className="bg-white rounded-lg max-w-4xl w-full p-6 my-8">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold">Verification Details</h2>
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+            <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full p-4 sm:p-6 my-4 sm:my-8 max-h-[95vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-4 sm:mb-6">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Verification Details</h2>
                 <button
                   onClick={() => {
                     setShowVerificationDetails(false);
@@ -528,8 +529,8 @@ export default function VerificationManagement() {
                 {viewingVerification.profile_picture && (
                   <div className="border-b pb-4">
                     <h3 className="text-lg font-semibold mb-3">Profile Picture</h3>
-                    <img
-                      src={viewingVerification.profile_picture}
+                    <LazyImage
+                      src={viewingVerification.profile_picture.startsWith('http') ? viewingVerification.profile_picture : `http://localhost${viewingVerification.profile_picture}`}
                       alt="Profile"
                       className="w-48 h-48 object-cover rounded-lg border"
                     />
@@ -559,8 +560,8 @@ export default function VerificationManagement() {
                     {viewingVerification.government_id_image && (
                       <div>
                         <label className="text-sm font-medium text-gray-600 block mb-2">ID Document</label>
-                        <img
-                          src={viewingVerification.government_id_image}
+                        <LazyImage
+                          src={viewingVerification.government_id_image.startsWith('http') ? viewingVerification.government_id_image : `http://localhost${viewingVerification.government_id_image}`}
                           alt="Government ID"
                           className="max-w-md w-full object-contain rounded-lg border"
                         />
@@ -592,8 +593,8 @@ export default function VerificationManagement() {
                     {viewingVerification.school_id_image && (
                       <div>
                         <label className="text-sm font-medium text-gray-600 block mb-2">School ID Document</label>
-                        <img
-                          src={viewingVerification.school_id_image}
+                        <LazyImage
+                          src={viewingVerification.school_id_image.startsWith('http') ? viewingVerification.school_id_image : `http://localhost${viewingVerification.school_id_image}`}
                           alt="School ID"
                           className="max-w-md w-full object-contain rounded-lg border"
                         />

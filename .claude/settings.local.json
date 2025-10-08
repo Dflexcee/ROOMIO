@@ -14,7 +14,15 @@
       "Bash(./php/php.exe htdocs/roomio/test-smtp-direct.php)",
       "Bash(if not exist \"uploads\\id-cards\" mkdir \"uploads\\id-cards\")",
       "Bash(grep:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(find:*)",
+      "Bash(if not exist \"htdocs\\roomio\\uploads\\chat-files\" mkdir \"htdocs\\roomio\\uploads\\chat-files\")",
+      "Bash(if [ ! -d \"uploads/chat-files\" ])",
+      "Bash(then mkdir -p uploads/chat-files)",
+      "Bash(fi)",
+      "Bash(if [ -d \"uploads/chat-files\" ])",
+      "Bash(then echo \"Directory exists\")",
+      "Bash(else echo \"Directory does not exist\")"
     ],
     "deny": [],
     "ask": []

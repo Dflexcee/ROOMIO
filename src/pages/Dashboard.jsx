@@ -3,6 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import Navbar from "../components/common/Navbar";
 import AdPopup from "../components/common/AdPopup";
+import VerificationStatus from "../components/common/VerificationStatus";
+import BannerAd from "../components/ads/BannerAd";
+import PopupAd from "../components/ads/PopupAd";
 
 export default function Dashboard() {
   const { user, loading } = useAuth();
@@ -31,10 +34,14 @@ export default function Dashboard() {
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-gray-900 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors">
       <Navbar />
-      <AdPopup />
-      <div className="flex-1 flex items-center justify-center p-4">
+      <BannerAd position="top" />
+      <PopupAd />
+      <div className="flex-1 flex items-center justify-center p-4 pt-20">
         <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl p-8 max-w-2xl w-full border border-blue-100 dark:border-gray-800 animate-fade-in">
-          <h2 className="text-2xl md:text-3xl font-extrabold mb-6 text-blue-700 dark:text-pink-400 drop-shadow-sm transition-all duration-300">👋 Welcome, {user.email}!</h2>
+          <h2 className="text-2xl md:text-3xl font-extrabold mb-6 text-blue-700 dark:text-pink-400 drop-shadow-sm transition-all duration-300">👋 Welcome, {user.full_name || user.email}!</h2>
+
+          <VerificationStatus user={user} />
+
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             <Card icon="��" label="Find Roommate" onClick={() => goTo("/find-roommate")} />
             <Card icon="🏠" label="Find Room" onClick={() => goTo("/find-room")} />

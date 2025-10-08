@@ -6,6 +6,9 @@ import Navbar from "../components/common/Navbar";
 import DarkModeToggle from "../components/common/DarkModeToggle";
 import config from "../config/api.js";
 import { useCurrency } from "../contexts/CurrencyContext";
+import Alert from "../components/common/Alert";
+import LoadingSpinner from "../components/common/LoadingSpinner";
+import LazyImage from "../components/common/LazyImage";
 
 export default function MyRooms() {
   const { currency } = useCurrency();
@@ -89,19 +92,20 @@ export default function MyRooms() {
         <div className="max-w-4xl mx-auto py-8 px-4">
           <h2 className="text-2xl md:text-3xl font-extrabold mb-6 text-blue-700 dark:text-pink-400">🛏️ My Posted Rooms</h2>
           {loading ? (
-            <div className="text-center text-gray-500">Loading rooms...</div>
+            <LoadingSpinner size="md" message="Loading rooms..." />
           ) : error ? (
-            <div className="text-center text-red-600">{error}</div>
+            <Alert type="error" message={error} onClose={() => setError('')} />
           ) : rooms.length === 0 ? (
             <p className="text-gray-600 text-sm">You haven't posted any rooms yet.</p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {rooms.map((room) => (
                 <div key={room.id} className="bg-white dark:bg-gray-900 p-4 shadow rounded-2xl border border-blue-100 dark:border-gray-800">
-                  <img
+                  <LazyImage
                     src={Array.isArray(room.images) && room.images.length > 0 ? room.images[0] : "/default-room.jpg"}
                     alt={room.title}
                     className="w-full h-36 object-cover rounded mb-2 border-2 border-blue-200 dark:border-pink-400"
+                    fallback="/default-room.jpg"
                   />
                   <h4 className="font-semibold text-blue-700 dark:text-pink-400 mb-1">{room.title}</h4>
                   <p className="text-sm text-gray-600 dark:text-gray-300">{currency.currency_symbol}{room.rent} • {room.location}</p>

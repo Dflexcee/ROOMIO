@@ -13,6 +13,16 @@ export function CurrencyProvider({ children }) {
 
   useEffect(() => {
     fetchCurrency();
+
+    // Listen for currency updates from admin panel
+    const handleCurrencyUpdate = (event) => {
+      if (event.detail && event.detail.currency) {
+        fetchCurrency(); // Refresh from API
+      }
+    };
+
+    window.addEventListener('currencyUpdated', handleCurrencyUpdate);
+    return () => window.removeEventListener('currencyUpdated', handleCurrencyUpdate);
   }, []);
 
   const fetchCurrency = async () => {
@@ -40,8 +50,10 @@ export function CurrencyProvider({ children }) {
     return `${currency.currency_symbol}${Number(amount).toLocaleString()}`;
   };
 
+  const currencySymbol = currency.currency_symbol;
+
   return (
-    <CurrencyContext.Provider value={{ currency, loading, formatCurrency, refreshCurrency: fetchCurrency }}>
+    <CurrencyContext.Provider value={{ currency, loading, formatCurrency, currencySymbol, refreshCurrency: fetchCurrency }}>
       {children}
     </CurrencyContext.Provider>
   );
