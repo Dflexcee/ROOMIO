@@ -5,6 +5,8 @@ import DarkModeToggle from "../components/common/DarkModeToggle";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/common/Navbar";
 import config from "../config/api.js";
+import BannerAd from "../components/ads/BannerAd";
+import PopupAd from "../components/ads/PopupAd";
 
 export default function CommunityFeed() {
   const [posts, setPosts] = useState([]);
@@ -108,6 +110,8 @@ export default function CommunityFeed() {
         <DarkModeToggle />
       </div>
       <Navbar />
+      <BannerAd position="top" />
+      <PopupAd />
       <div className="flex-1 w-full px-2 sm:px-4 py-4 pt-20 overflow-x-hidden">
         <div className="w-full max-w-2xl mx-auto">
           <div className="bg-white dark:bg-gray-900 rounded-xl sm:rounded-3xl shadow-2xl p-4 sm:p-6 md:p-8 border border-blue-100 dark:border-gray-800">

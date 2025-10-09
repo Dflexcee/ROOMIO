@@ -12,10 +12,20 @@ header('Content-Type: application/json');
 
 // Get current user (optional)
 $user = null;
-try {
-    $user = get_current_user($pdo);
-} catch (Exception $e) {
-    // Not logged in, that's fine
+$user_email = null;
+$user_name = null;
+if (isset($_SESSION['user_id'])) {
+    try {
+        $stmt = $pdo->prepare("SELECT id, account_type, email, CONCAT(first_name, ' ', last_name) as name FROM users WHERE id = ?");
+        $stmt->execute([$_SESSION['user_id']]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($user) {
+            $user_email = $user['email'];
+            $user_name = $user['name'];
+        }
+    } catch (Exception $e) {
+        // Not logged in, that's fine
+    }
 }
 
 $session_id = session_id();
@@ -67,14 +77,14 @@ try {
             case 'once_per_session':
                 // Check if user/session has seen this ad in this session
                 $checkStmt = $pdo->prepare("
-                    SELECT COUNT(*) as count FROM ad_views
-                    WHERE ad_id = ? AND (session_id = ?" . ($user ? " OR user_id = ?" : "") . ")
-                    AND viewed_at > DATE_SUB(NOW(), INTERVAL 4 HOUR)
-                ");
+                    SELECT COUNT(*) as count FROM ad_impressions
+                    WHERE ad_id = ? AND viewed_at > DATE_SUB(NOW(), INTERVAL 4 HOUR)
+                    " . ($user ? "AND user_id = ?" : "")
+                );
                 if ($user) {
-                    $checkStmt->execute([$ad['id'], $session_id, $user['id']]);
+                    $checkStmt->execute([$ad['id'], $user['id']]);
                 } else {
-                    $checkStmt->execute([$ad['id'], $session_id]);
+                    $checkStmt->execute([$ad['id']]);
                 }
                 $result = $checkStmt->fetch(PDO::FETCH_ASSOC);
                 $shouldShow = ($result['count'] == 0);
@@ -83,14 +93,14 @@ try {
             case 'once_per_day':
                 // Check if user/session has seen this ad today
                 $checkStmt = $pdo->prepare("
-                    SELECT COUNT(*) as count FROM ad_views
-                    WHERE ad_id = ? AND (session_id = ?" . ($user ? " OR user_id = ?" : "") . ")
-                    AND DATE(viewed_at) = CURDATE()
-                ");
+                    SELECT COUNT(*) as count FROM ad_impressions
+                    WHERE ad_id = ? AND DATE(viewed_at) = CURDATE()
+                    " . ($user ? "AND user_id = ?" : "")
+                );
                 if ($user) {
-                    $checkStmt->execute([$ad['id'], $session_id, $user['id']]);
+                    $checkStmt->execute([$ad['id'], $user['id']]);
                 } else {
-                    $checkStmt->execute([$ad['id'], $session_id]);
+                    $checkStmt->execute([$ad['id']]);
                 }
                 $result = $checkStmt->fetch(PDO::FETCH_ASSOC);
                 $shouldShow = ($result['count'] == 0);
@@ -98,15 +108,19 @@ try {
         }
 
         if ($shouldShow) {
-            // Record view
+            // Record impression with detailed tracking
             $viewStmt = $pdo->prepare("
-                INSERT INTO ad_views (ad_id, user_id, session_id)
-                VALUES (?, ?, ?)
+                INSERT INTO ad_impressions (ad_id, user_id, user_email, user_name, page_url, ip_address, user_agent)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
             ");
             $viewStmt->execute([
                 $ad['id'],
                 $user ? $user['id'] : null,
-                $session_id
+                $user_email,
+                $user_name,
+                $_SERVER['HTTP_REFERER'] ?? null,
+                $_SERVER['REMOTE_ADDR'] ?? null,
+                $_SERVER['HTTP_USER_AGENT'] ?? null
             ]);
 
             // Increment impressions count

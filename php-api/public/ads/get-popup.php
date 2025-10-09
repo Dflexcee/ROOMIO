@@ -12,10 +12,14 @@ header('Content-Type: application/json');
 
 // Get current user (optional - ads can show to guests too)
 $user = null;
-try {
-    $user = get_current_user($pdo);
-} catch (Exception $e) {
-    // Not logged in, that's fine
+if (isset($_SESSION['user_id'])) {
+    try {
+        $stmt = $pdo->prepare("SELECT id, account_type FROM users WHERE id = ?");
+        $stmt->execute([$_SESSION['user_id']]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {
+        // Not logged in, that's fine
+    }
 }
 
 $session_id = session_id();

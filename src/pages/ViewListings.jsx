@@ -5,6 +5,8 @@ import DarkModeToggle from "../components/common/DarkModeToggle";
 import config from "../config/api";
 import { useCurrency } from "../contexts/CurrencyContext";
 import LazyImage from "../components/common/LazyImage";
+import BannerAd from "../components/ads/BannerAd";
+import PopupAd from "../components/ads/PopupAd";
 
 const PAGE_SIZE = 12;
 
@@ -214,6 +216,8 @@ export default function ViewListings() {
         <DarkModeToggle />
       </div>
       <Navbar />
+      <BannerAd position="top" />
+      <PopupAd />
       <div className="flex-1 p-4">
         <div className="w-full max-w-7xl mx-auto bg-white dark:bg-gray-900 rounded-3xl shadow-2xl p-8 border border-blue-100 dark:border-gray-800 animate-fade-in">
           <h2 className="text-2xl md:text-3xl font-extrabold mb-6 text-blue-700 dark:text-pink-400 text-center">

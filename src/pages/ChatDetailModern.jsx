@@ -6,6 +6,8 @@ import DarkModeToggle from "../components/common/DarkModeToggle";
 import { FaArrowLeft, FaPaperclip, FaSmile, FaPaperPlane, FaTimes, FaDownload } from 'react-icons/fa';
 import config from "../config/api.js";
 import LazyImage from "../components/common/LazyImage";
+import BannerAd from "../components/ads/BannerAd";
+import PopupAd from "../components/ads/PopupAd";
 
 /**
  * Modern Facebook-Style Chat Interface
@@ -259,6 +261,7 @@ export default function ChatDetailModern() {
 
   return (
     <div className="flex flex-col h-screen bg-gray-100 dark:bg-gray-900">
+      <PopupAd />
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center space-x-3 shadow-sm">
         <button

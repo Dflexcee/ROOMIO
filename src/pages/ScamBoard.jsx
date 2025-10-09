@@ -5,6 +5,8 @@ import DarkModeToggle from "../components/common/DarkModeToggle";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/common/Navbar";
 import config from "../config/api.js";
+import BannerAd from "../components/ads/BannerAd";
+import PopupAd from "../components/ads/PopupAd";
 
 export default function ScamBoard() {
   const { user } = useAuth();
@@ -68,6 +70,8 @@ export default function ScamBoard() {
         <DarkModeToggle />
       </div>
       <Navbar />
+      <BannerAd position="top" />
+      <PopupAd />
       <div className="flex-1 p-4">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-3xl font-bold text-white mb-8 text-center">⚠️ Scam Alert Board</h1>

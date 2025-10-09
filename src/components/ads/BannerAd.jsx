@@ -32,12 +32,21 @@ export default function BannerAd({ position = 'top' }) {
     if (ad && ad.target_link) {
       // Track click
       try {
-        await fetch(config.getUrl('/ads/track-click.php'), {
+        console.log('Tracking click for ad:', ad.id);
+        const response = await fetch(config.getUrl('/ads/track-click.php'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
           body: JSON.stringify({ ad_id: ad.id })
         });
+        const data = await response.json();
+        console.log('Click tracking response:', data);
+
+        if (data.success) {
+          console.log('✓ Click tracked successfully');
+        } else {
+          console.error('Click tracking failed:', data.error);
+        }
       } catch (error) {
         console.error('Error tracking ad click:', error);
       }

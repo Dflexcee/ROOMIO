@@ -6,6 +6,8 @@ import DarkModeToggle from "../components/common/DarkModeToggle";
 import Button from "../components/common/Button";
 import { useNavigate } from "react-router-dom";
 import LazyImage from "../components/common/LazyImage";
+import BannerAd from "../components/ads/BannerAd";
+import PopupAd from "../components/ads/PopupAd";
 
 export default function FindRoommate() {
   const { currency } = useCurrency();
@@ -475,6 +477,8 @@ export default function FindRoommate() {
         <DarkModeToggle />
       </div>
       <Navbar />
+      <BannerAd position="top" />
+      <PopupAd />
 
       <div className="flex-1 flex flex-col items-center justify-center px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8">
         <div className="w-full max-w-7xl">

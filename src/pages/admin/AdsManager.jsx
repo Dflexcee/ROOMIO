@@ -39,6 +39,12 @@ export default function AdsManager() {
       const data = await response.json();
       console.log('Fetch ads response:', data);
 
+      if (data.ads && data.ads.length > 0) {
+        console.log('First ad data:', data.ads[0]);
+        console.log('Impressions:', data.ads[0].impressions);
+        console.log('Clicks:', data.ads[0].clicks);
+      }
+
       if (data.success) {
         setAds(data.ads || []);
       } else {
@@ -264,6 +270,33 @@ export default function AdsManager() {
                   <div>Type: <span className="font-medium">{ad.ad_type}</span></div>
                   <div>Audience: <span className="font-medium">{ad.target_audience}</span></div>
                   <div>Priority: <span className="font-medium">{ad.priority}</span></div>
+
+                  {/* Analytics Section - Clickable */}
+                  <div
+                    onClick={() => window.location.href = `/admin/ads/${ad.id}/analytics`}
+                    className="bg-gray-50 dark:bg-gray-800 rounded p-2 mt-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                  >
+                    <div className="flex justify-between mb-1">
+                      <span>👁️ Impressions:</span>
+                      <span className="font-semibold text-blue-600">{(ad.impressions || 0).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between mb-1">
+                      <span>🖱️ Clicks:</span>
+                      <span className="font-semibold text-green-600">{(ad.clicks || 0).toLocaleString()}</span>
+                    </div>
+                    {ad.clicks > 0 && ad.impressions > 0 && (
+                      <div className="flex justify-between">
+                        <span>📊 CTR:</span>
+                        <span className="font-semibold text-purple-600">
+                          {((ad.clicks / ad.impressions) * 100).toFixed(2)}%
+                        </span>
+                      </div>
+                    )}
+                    <div className="text-center mt-1 text-blue-600 font-medium">
+                      View Detailed Analytics →
+                    </div>
+                  </div>
+
                   {ad.target_link && (
                     <div className="truncate">Link: <span className="font-medium">{ad.target_link}</span></div>
                   )}

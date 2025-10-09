@@ -22,7 +22,11 @@
       "Bash(fi)",
       "Bash(if [ -d \"uploads/chat-files\" ])",
       "Bash(then echo \"Directory exists\")",
-      "Bash(else echo \"Directory does not exist\")"
+      "Bash(else echo \"Directory does not exist\")",
+      "Bash(./mysql.exe -u root -e \"SELECT id, title, impressions, clicks FROM roomio.ads\")",
+      "Bash(php:*)",
+      "Bash(./php/php.exe -r \"$pdo = new PDO(''mysql:host=localhost;dbname=roomio'', ''root'', ''''); $stmt = $pdo->query(''DESCRIBE ads''); while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) { echo $row[''Field''] . '' - '' . $row[''Type''] . PHP_EOL; }\")",
+      "Bash(cmd.exe /c \"php\\php.exe -r \"\"$pdo = new PDO(''mysql:host=localhost;dbname=roomio'', ''root'', ''''); $stmt = $pdo->query(''SELECT * FROM ads LIMIT 1''); $row = $stmt->fetch(PDO::FETCH_ASSOC); if ($row) { print_r(array_keys($row)); } else { echo ''No ads found''; }\"\"\")"
     ],
     "deny": [],
     "ask": []

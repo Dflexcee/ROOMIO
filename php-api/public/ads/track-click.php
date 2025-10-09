@@ -23,20 +23,35 @@ if (!$ad_id) {
 }
 
 // Get current user (optional)
-$user = null;
-try {
-    $user = get_current_user($pdo);
-} catch (Exception $e) {
-    // Not logged in, that's fine
-}
+$user_id = $_SESSION['user_id'] ?? null;
 
 try {
-    // Record click
+    // Get user details if logged in
+    $user_email = null;
+    $user_name = null;
+    if ($user_id) {
+        $stmt = $pdo->prepare("SELECT email, CONCAT(first_name, ' ', last_name) as name FROM users WHERE id = ?");
+        $stmt->execute([$user_id]);
+        $userData = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($userData) {
+            $user_email = $userData['email'];
+            $user_name = $userData['name'];
+        }
+    }
+
+    // Record click with timestamp and tracking info
     $stmt = $pdo->prepare("
-        INSERT INTO ad_clicks (ad_id, user_id)
-        VALUES (?, ?)
+        INSERT INTO ad_clicks (ad_id, user_id, user_email, user_name, ip_address, user_agent, clicked_at)
+        VALUES (?, ?, ?, ?, ?, ?, NOW())
     ");
-    $stmt->execute([$ad_id, $user ? $user['id'] : null]);
+    $stmt->execute([
+        $ad_id,
+        $user_id,
+        $user_email,
+        $user_name,
+        $_SERVER['REMOTE_ADDR'] ?? null,
+        $_SERVER['HTTP_USER_AGENT'] ?? null
+    ]);
 
     // Increment clicks count
     $pdo->prepare("UPDATE ads SET clicks = clicks + 1 WHERE id = ?")->execute([$ad_id]);
@@ -45,6 +60,6 @@ try {
 
 } catch (PDOException $e) {
     error_log("Database error in track-click.php: " . $e->getMessage());
-    json_response(['error' => 'Database error'], 500);
+    json_response(['error' => 'Database error: ' . $e->getMessage()], 500);
 }
 ?>
