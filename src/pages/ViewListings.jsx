@@ -216,7 +216,9 @@ export default function ViewListings() {
         <DarkModeToggle />
       </div>
       <Navbar />
-      <BannerAd position="top" />
+      <div className="pt-16">
+        <BannerAd position="top" />
+      </div>
       <PopupAd />
       <div className="flex-1 p-4">
         <div className="w-full max-w-7xl mx-auto bg-white dark:bg-gray-900 rounded-3xl shadow-2xl p-8 border border-blue-100 dark:border-gray-800 animate-fade-in">

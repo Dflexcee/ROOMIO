@@ -70,7 +70,9 @@ export default function ScamBoard() {
         <DarkModeToggle />
       </div>
       <Navbar />
-      <BannerAd position="top" />
+      <div className="pt-16">
+        <BannerAd position="top" />
+      </div>
       <PopupAd />
       <div className="flex-1 p-4">
         <div className="max-w-4xl mx-auto">

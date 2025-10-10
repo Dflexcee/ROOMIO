@@ -7,6 +7,23 @@ require_once '../../config.php';
 require_once '../../bootstrap.php';
 require_once '../../lib/Auth.php';
 
+// Handle CORS
+$allowed_origins = ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://127.0.0.1:5173'];
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+
+if (in_array($origin, $allowed_origins)) {
+    header("Access-Control-Allow-Origin: $origin");
+    header('Access-Control-Allow-Credentials: true');
+    header('Access-Control-Allow-Methods: POST, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type, X-Requested-With');
+}
+
+// Handle preflight
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit;
+}
+
 header('Content-Type: application/json');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -30,12 +47,12 @@ try {
     $user_email = null;
     $user_name = null;
     if ($user_id) {
-        $stmt = $pdo->prepare("SELECT email, CONCAT(first_name, ' ', last_name) as name FROM users WHERE id = ?");
+        $stmt = $pdo->prepare("SELECT email, full_name FROM users WHERE id = ?");
         $stmt->execute([$user_id]);
         $userData = $stmt->fetch(PDO::FETCH_ASSOC);
         if ($userData) {
             $user_email = $userData['email'];
-            $user_name = $userData['name'];
+            $user_name = $userData['full_name'];
         }
     }
 

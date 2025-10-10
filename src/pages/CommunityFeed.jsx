@@ -110,9 +110,11 @@ export default function CommunityFeed() {
         <DarkModeToggle />
       </div>
       <Navbar />
-      <BannerAd position="top" />
+      <div className="pt-16">
+        <BannerAd position="top" />
+      </div>
       <PopupAd />
-      <div className="flex-1 w-full px-2 sm:px-4 py-4 pt-20 overflow-x-hidden">
+      <div className="flex-1 w-full px-2 sm:px-4 py-4 overflow-x-hidden">
         <div className="w-full max-w-2xl mx-auto">
           <div className="bg-white dark:bg-gray-900 rounded-xl sm:rounded-3xl shadow-2xl p-4 sm:p-6 md:p-8 border border-blue-100 dark:border-gray-800">
             <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold mb-4 sm:mb-6 text-blue-700 dark:text-pink-400 drop-shadow-sm text-center">💬 Community Forum</h2>

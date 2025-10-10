@@ -159,7 +159,7 @@ export default function ProfileEdit() {
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-gray-900 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors">
       <Navbar />
-      <div className="flex-1 p-4">
+      <div className="flex-1 p-4 pt-20">
         <div className="max-w-4xl mx-auto">
           {/* Success/Error Messages */}
           <Alert

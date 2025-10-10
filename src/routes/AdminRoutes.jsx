@@ -12,6 +12,7 @@ import SMSSettings from '../pages/admin/SMSSettings';
 import SMTPSettings from '../pages/admin/SMTPSettings';
 import AdsManager from '../pages/admin/AdsManager';
 import AdAnalytics from '../pages/admin/AdAnalytics';
+import AdRotationManager from '../pages/admin/AdRotationManager';
 import Payments from '../pages/admin/Payments';
 import PaymentGatewaySettings from '../pages/admin/PaymentGatewaySettings';
 import ProtectedAdminRoute from './ProtectedAdminRoute';
@@ -51,6 +52,7 @@ const AdminRoutes = () => {
           <Route path="smtp-settings" element={<SMTPSettings />} />
           <Route path="ads" element={<AdsManager />} />
           <Route path="ads/:adId/analytics" element={<AdAnalytics />} />
+          <Route path="ad-rotation" element={<AdRotationManager />} />
           <Route path="payments" element={<Payments />} />
           <Route path="payment-gateway-settings" element={<PaymentGatewaySettings />} />
           <Route path="broadcast" element={<Broadcast />} />

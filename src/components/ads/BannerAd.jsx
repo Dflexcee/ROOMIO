@@ -29,30 +29,43 @@ export default function BannerAd({ position = 'top' }) {
   };
 
   const handleClick = async () => {
-    if (ad && ad.target_link) {
-      // Track click
-      try {
-        console.log('Tracking click for ad:', ad.id);
-        const response = await fetch(config.getUrl('/ads/track-click.php'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ ad_id: ad.id })
-        });
-        const data = await response.json();
-        console.log('Click tracking response:', data);
+    if (!ad) return;
 
-        if (data.success) {
-          console.log('✓ Click tracked successfully');
-        } else {
-          console.error('Click tracking failed:', data.error);
-        }
-      } catch (error) {
-        console.error('Error tracking ad click:', error);
+    console.log('🖱️ BANNER AD CLICKED! Ad ID:', ad.id, 'Title:', ad.title);
+
+    // ALWAYS track click, even if no target_link
+    try {
+      console.log('📊 Tracking banner click for ad:', ad.id);
+      const response = await fetch(config.getUrl('/ads/track-click.php'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ ad_id: ad.id })
+      });
+
+      if (!response.ok) {
+        console.error('❌ HTTP Error:', response.status, response.statusText);
+        return;
       }
 
-      // Open link
+      const data = await response.json();
+      console.log('📈 Banner click tracking response:', data);
+
+      if (data.success) {
+        console.log('✅ Banner click tracked successfully for ad #' + ad.id);
+      } else {
+        console.error('❌ Banner click tracking failed:', data.error);
+      }
+    } catch (error) {
+      console.error('❌ Error tracking banner ad click:', error);
+    }
+
+    // Open link if exists
+    if (ad.target_link) {
+      console.log('🔗 Opening link:', ad.target_link);
       window.open(ad.target_link, '_blank');
+    } else {
+      console.log('ℹ️ No target link for this ad');
     }
   };
 
@@ -63,7 +76,7 @@ export default function BannerAd({ position = 'top' }) {
   if (!ad || dismissed) return null;
 
   return (
-    <div className={`relative w-full bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-900 border-b border-gray-200 dark:border-gray-700 ${position === 'bottom' ? 'border-t' : 'border-b'}`}>
+    <div className={`w-full bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-900 border-b border-gray-200 dark:border-gray-700 ${position === 'bottom' ? 'border-t' : ''}`}>
       <div className="max-w-7xl mx-auto px-4 py-3">
         <div className="flex items-center justify-between gap-4">
           {/* Ad Content */}

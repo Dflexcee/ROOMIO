@@ -54,6 +54,7 @@ export default function Verification() {
         <DarkModeToggle />
       </div>
       <Navbar />
+      <div className="pt-16">
       <div className="flex-1 flex items-center justify-center p-4 pt-20">
         <div className="w-full max-w-4xl bg-white dark:bg-gray-900 rounded-3xl shadow-2xl p-6 md:p-8 border border-blue-100 dark:border-gray-800">
           <div className="mb-6">
@@ -106,6 +107,7 @@ export default function Verification() {
             </>
           )}
         </div>
+      </div>
       </div>
     </div>
   );

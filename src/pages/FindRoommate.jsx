@@ -477,7 +477,9 @@ export default function FindRoommate() {
         <DarkModeToggle />
       </div>
       <Navbar />
-      <BannerAd position="top" />
+      <div className="pt-16">
+        <BannerAd position="top" />
+      </div>
       <PopupAd />
 
       <div className="flex-1 flex flex-col items-center justify-center px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8">

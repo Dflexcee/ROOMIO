@@ -197,8 +197,10 @@ export default function EditListing() {
           <DarkModeToggle />
         </div>
         <Navbar />
-        <div className="flex-1 flex items-center justify-center p-4">
-          <LoadingSpinner size="md" message="Loading listing..." />
+        <div className="pt-16">
+          <div className="flex-1 flex items-center justify-center p-4">
+            <LoadingSpinner size="md" message="Loading listing..." />
+          </div>
         </div>
       </div>
     );
@@ -210,6 +212,7 @@ export default function EditListing() {
         <DarkModeToggle />
       </div>
       <Navbar />
+      <div className="pt-16">
       <div className="flex-1 flex items-center justify-center p-4">
         <div className="w-full max-w-4xl mx-auto bg-white dark:bg-gray-900 rounded-3xl shadow-2xl p-8 border border-blue-100 dark:border-gray-800 animate-fade-in">
           <h2 className="text-2xl md:text-3xl font-extrabold mb-6 text-blue-700 dark:text-pink-400 drop-shadow-sm transition-all duration-300 text-center">
@@ -376,6 +379,7 @@ export default function EditListing() {
             </div>
           </form>
         </div>
+      </div>
       </div>
     </div>
   );

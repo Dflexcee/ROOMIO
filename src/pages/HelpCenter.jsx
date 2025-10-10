@@ -224,7 +224,7 @@ export default function HelpCenter() {
         <DarkModeToggle />
       </div>
       <Navbar />
-      <div className="flex-1 container mx-auto px-4 py-8">
+      <div className="flex-1 container mx-auto px-4 py-8 pt-20">
         <div className="max-w-4xl mx-auto">
           {/* Contact Information */}
           <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl p-8 mb-8 border border-blue-100 dark:border-gray-800">

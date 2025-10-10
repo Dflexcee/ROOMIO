@@ -14,6 +14,7 @@ const adminConfig = {
       { path: "/admin/tickets", label: "Tickets", icon: "🎫", roles: ["admin", "manager"] },
       { path: "/admin/email-templates", label: "Email Templates", icon: "📧", roles: ["admin", "manager"] },
       { path: "/admin/ads", label: "Ads Manager", icon: "📢", roles: ["admin", "manager"] },
+      { path: "/admin/ad-rotation", label: "Ad Rotation Manager", icon: "🔄", roles: ["admin", "manager"] },
       { path: "/admin/payments", label: "Payment Settings", icon: "💰", roles: ["admin"] },
       { path: "/admin/user-access", label: "User Access", icon: "🔐", roles: ["admin"] },
       { path: "/admin/posting-access", label: "Posting Access Control", icon: "📝", roles: ["admin"] },

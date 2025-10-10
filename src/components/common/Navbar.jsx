@@ -215,9 +215,6 @@ export default function Navbar() {
           </div>
         </div>
       </aside>
-
-      {/* Spacer for top bar */}
-      <div className="h-16"></div>
     </>
   );
 } 

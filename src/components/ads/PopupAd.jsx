@@ -4,16 +4,23 @@ import config from '../../config/api';
 /**
  * Popup Ad Component
  * Shows popup ads with skip button after specified seconds
+ * Can be used standalone or with AdRotationManager
  */
-export default function PopupAd() {
-  const [ad, setAd] = useState(null);
+export default function PopupAd({ ad: propAd, onClose }) {
+  const [ad, setAd] = useState(propAd || null);
   const [dismissed, setDismissed] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [canSkip, setCanSkip] = useState(false);
 
   useEffect(() => {
-    fetchPopupAd();
-  }, []);
+    if (propAd) {
+      setAd(propAd);
+      setCountdown(propAd.skip_after_seconds || 3);
+      setCanSkip(propAd.skip_after_seconds === 0);
+    } else {
+      fetchPopupAd();
+    }
+  }, [propAd]);
 
   useEffect(() => {
     if (ad && countdown > 0) {
@@ -46,35 +53,51 @@ export default function PopupAd() {
   };
 
   const handleClick = async () => {
-    if (ad && ad.target_link) {
-      // Track click
-      try {
-        console.log('Tracking popup click for ad:', ad.id);
-        const response = await fetch(config.getUrl('/ads/track-click.php'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ ad_id: ad.id })
-        });
-        const data = await response.json();
-        console.log('Popup click tracking response:', data);
+    if (!ad) return;
 
-        if (data.success) {
-          console.log('✓ Popup click tracked successfully');
-        } else {
-          console.error('Popup click tracking failed:', data.error);
-        }
-      } catch (error) {
-        console.error('Error tracking popup ad click:', error);
+    console.log('🖱️ POPUP AD CLICKED! Ad ID:', ad.id, 'Title:', ad.title);
+
+    // ALWAYS track click, even if no target_link
+    try {
+      console.log('📊 Tracking popup click for ad:', ad.id);
+      const response = await fetch(config.getUrl('/ads/track-click.php'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ ad_id: ad.id })
+      });
+
+      if (!response.ok) {
+        console.error('❌ HTTP Error:', response.status, response.statusText);
+        return;
       }
 
-      // Open link
+      const data = await response.json();
+      console.log('📈 Popup click tracking response:', data);
+
+      if (data.success) {
+        console.log('✅ Popup click tracked successfully for ad #' + ad.id);
+      } else {
+        console.error('❌ Popup click tracking failed:', data.error);
+      }
+    } catch (error) {
+      console.error('❌ Error tracking popup ad click:', error);
+    }
+
+    // Open link if exists
+    if (ad.target_link) {
+      console.log('🔗 Opening link:', ad.target_link);
       window.open(ad.target_link, '_blank');
+    } else {
+      console.log('ℹ️ No target link for this ad');
     }
   };
 
   const handleSkip = () => {
     setDismissed(true);
+    if (onClose) {
+      onClose();
+    }
   };
 
   if (!ad || dismissed) return null;
@@ -102,10 +125,11 @@ export default function PopupAd() {
           </div>
         )}
 
-        {/* Ad Content */}
+        {/* Ad Content - ENTIRE POPUP IS CLICKABLE */}
         <div
-          className="cursor-pointer"
+          className="cursor-pointer hover:opacity-95 transition-opacity active:scale-[0.99]"
           onClick={handleClick}
+          title="Click to view ad"
         >
           {/* Image */}
           {ad.image_url && (

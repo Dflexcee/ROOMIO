@@ -2,11 +2,29 @@
 /**
  * Get ads for display on user-facing pages
  * Returns ads based on type, frequency, and targeting
+ * NOW WITH SMART AD ROTATION FOR MULTIPLE ADS
  */
 
 require_once '../../config.php';
 require_once '../../bootstrap.php';
 require_once '../../lib/Auth.php';
+
+// Handle CORS
+$allowed_origins = ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://127.0.0.1:5173'];
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+
+if (in_array($origin, $allowed_origins)) {
+    header("Access-Control-Allow-Origin: $origin");
+    header('Access-Control-Allow-Credentials: true');
+    header('Access-Control-Allow-Methods: GET, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type, X-Requested-With');
+}
+
+// Handle preflight
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit;
+}
 
 header('Content-Type: application/json');
 
@@ -16,12 +34,12 @@ $user_email = null;
 $user_name = null;
 if (isset($_SESSION['user_id'])) {
     try {
-        $stmt = $pdo->prepare("SELECT id, account_type, email, CONCAT(first_name, ' ', last_name) as name FROM users WHERE id = ?");
+        $stmt = $pdo->prepare("SELECT id, account_type, email, full_name FROM users WHERE id = ?");
         $stmt->execute([$_SESSION['user_id']]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
         if ($user) {
             $user_email = $user['email'];
-            $user_name = $user['name'];
+            $user_name = $user['full_name'];
         }
     } catch (Exception $e) {
         // Not logged in, that's fine
@@ -29,7 +47,8 @@ if (isset($_SESSION['user_id'])) {
 }
 
 $session_id = session_id();
-$ad_type = $_GET['type'] ?? 'all'; // banner, popup, all
+$ad_type = $_GET['type'] ?? 'all'; // banner, popup, sidebar, all
+$limit = (int)($_GET['limit'] ?? 1); // How many ads to return
 
 try {
     // Build targeting query
@@ -50,11 +69,12 @@ try {
         $targetQuery .= " AND target_audience = 'all'";
     }
 
-    // Get all eligible ads
+    // Get all eligible ads, ordered by priority
     $stmt = $pdo->prepare("
         SELECT * FROM ads
         WHERE {$targetQuery}
         ORDER BY priority DESC, RAND()
+        LIMIT 100
     ");
     $stmt->execute($params);
     $eligibleAds = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -64,9 +84,15 @@ try {
         exit;
     }
 
-    // Filter by display frequency
+    // Filter by display frequency and select ads
     $selectedAds = [];
+    $adsToReturn = min($limit, count($eligibleAds));
+
     foreach ($eligibleAds as $ad) {
+        if (count($selectedAds) >= $adsToReturn) {
+            break;
+        }
+
         $shouldShow = false;
 
         switch ($ad['display_frequency']) {
@@ -75,7 +101,7 @@ try {
                 break;
 
             case 'once_per_session':
-                // Check if user/session has seen this ad in this session
+                // Check if user/session has seen this ad in this session (last 4 hours)
                 $checkStmt = $pdo->prepare("
                     SELECT COUNT(*) as count FROM ad_impressions
                     WHERE ad_id = ? AND viewed_at > DATE_SUB(NOW(), INTERVAL 4 HOUR)
@@ -142,7 +168,13 @@ try {
 
     json_response([
         'success' => true,
-        'ads' => $selectedAds
+        'ads' => $selectedAds,
+        'total_available' => count($eligibleAds),
+        'rotation_info' => [
+            'ads_returned' => count($selectedAds),
+            'ads_requested' => $limit,
+            'has_more' => count($eligibleAds) > count($selectedAds)
+        ]
     ]);
 
 } catch (PDOException $e) {

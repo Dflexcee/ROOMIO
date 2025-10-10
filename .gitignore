@@ -1,1 +1,39 @@
-node_modules
+# Dependencies
+node_modules/
+vendor/
+
+# Build output
+dist/
+build/
+
+# Environment files
+.env
+.env.local
+.env.production
+php-api/.env
+
+# Logs
+*.log
+npm-debug.log*
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+
+# User uploads
+public/uploads/*
+!public/uploads/.gitkeep
+
+# Temporary files
+*.tmp
+*.cache
+
+# Database
+*.sql.gz
+*.sql.zip

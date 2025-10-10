@@ -76,7 +76,8 @@ export default function Inbox() {
         <DarkModeToggle />
       </div>
       <Navbar />
-      <PageWrapper>
+      <div className="pt-16">
+        <PageWrapper>
         <div className="max-w-2xl mx-auto py-8 px-4">
           <h2 className="text-2xl md:text-3xl font-extrabold mb-6 text-blue-700 dark:text-pink-400">💬 My Inbox</h2>
           {loading ? (
@@ -109,6 +110,7 @@ export default function Inbox() {
           )}
         </div>
       </PageWrapper>
+      </div>
     </div>
   );
 } 

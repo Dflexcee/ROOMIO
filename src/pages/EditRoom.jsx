@@ -158,6 +158,7 @@ export default function EditRoom() {
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-gray-900 dark:from-gray-900 dark:via-black dark:to-gray-900 transition-colors">
       <Navbar />
+      <div className="pt-16">
       <PageWrapper>
         <div className="max-w-xl mx-auto mt-10 bg-white dark:bg-gray-900 rounded-3xl shadow-2xl p-8 border border-blue-100 dark:border-gray-800 animate-fade-in">
           <h2 className="text-2xl md:text-3xl font-extrabold mb-6 text-blue-700 dark:text-pink-400 text-center">Edit Room</h2>
@@ -280,6 +281,7 @@ export default function EditRoom() {
           ) : null}
         </div>
       </PageWrapper>
+      </div>
     </div>
   );
 } 

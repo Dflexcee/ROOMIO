@@ -26,7 +26,13 @@
       "Bash(./mysql.exe -u root -e \"SELECT id, title, impressions, clicks FROM roomio.ads\")",
       "Bash(php:*)",
       "Bash(./php/php.exe -r \"$pdo = new PDO(''mysql:host=localhost;dbname=roomio'', ''root'', ''''); $stmt = $pdo->query(''DESCRIBE ads''); while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) { echo $row[''Field''] . '' - '' . $row[''Type''] . PHP_EOL; }\")",
-      "Bash(cmd.exe /c \"php\\php.exe -r \"\"$pdo = new PDO(''mysql:host=localhost;dbname=roomio'', ''root'', ''''); $stmt = $pdo->query(''SELECT * FROM ads LIMIT 1''); $row = $stmt->fetch(PDO::FETCH_ASSOC); if ($row) { print_r(array_keys($row)); } else { echo ''No ads found''; }\"\"\")"
+      "Bash(cmd.exe /c \"php\\php.exe -r \"\"$pdo = new PDO(''mysql:host=localhost;dbname=roomio'', ''root'', ''''); $stmt = $pdo->query(''SELECT * FROM ads LIMIT 1''); $row = $stmt->fetch(PDO::FETCH_ASSOC); if ($row) { print_r(array_keys($row)); } else { echo ''No ads found''; }\"\"\")",
+      "Bash(/dev/null)",
+      "Bash(for:*)",
+      "Bash(do echo \"=== $file ===\")",
+      "Bash(done)",
+      "Bash(./mysql.exe:*)",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []

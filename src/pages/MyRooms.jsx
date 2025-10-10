@@ -88,6 +88,7 @@ export default function MyRooms() {
         <DarkModeToggle />
       </div>
       <Navbar />
+      <div className="pt-16">
       <PageWrapper>
         <div className="max-w-4xl mx-auto py-8 px-4">
           <h2 className="text-2xl md:text-3xl font-extrabold mb-6 text-blue-700 dark:text-pink-400">🛏️ My Posted Rooms</h2>
@@ -130,6 +131,7 @@ export default function MyRooms() {
           )}
         </div>
       </PageWrapper>
+      </div>
     </div>
   );
 } 
