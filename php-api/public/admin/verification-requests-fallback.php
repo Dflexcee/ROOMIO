@@ -3,16 +3,9 @@
 // This will work even if the main API has issues
 
 // CORS headers
-$allowed_origins = ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'];
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-if (in_array($origin, $allowed_origins)) {
-    header('Access-Control-Allow-Origin: ' . $origin);
-} else {
-    header('Access-Control-Allow-Origin: http://localhost:5174'); // Fallback
-}
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
-header('Access-Control-Allow-Credentials: true');
+require_once __DIR__ . '/../../lib/UrlHelper.php';
+require_once __DIR__ . '/../../lib/Config.php';
+UrlHelper::applyCorsHeaders();
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
@@ -22,7 +15,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 header('Content-Type: application/json');
 
 try {
-    $pdo = new PDO('mysql:host=127.0.0.1;dbname=roomio;charset=utf8mb4', 'ruser', 'cord3001');
+    $host = Config::get('DB_HOST', 'localhost');
+    $dbname = Config::get('DB_NAME', 'roomio');
+    $username = Config::get('DB_USER', 'root');
+    $password = Config::get('DB_PASS', '');
+    $charset = 'utf8mb4';
+    
+    $dsn = "mysql:host={$host};dbname={$dbname};charset={$charset}";
+    $pdo = new PDO($dsn, $username, $password);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {

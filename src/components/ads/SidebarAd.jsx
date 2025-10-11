@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import config from '../../config/api';
+import { toAbsoluteImageUrl } from '../../utils/urlHelper';
 
 /**
  * Sidebar Ad Component
@@ -97,7 +98,7 @@ export default function SidebarAd({ position = 'right' }) {
           {/* Image */}
           {ad.image_url && (
             <img
-              src={ad.image_url.startsWith('http') ? ad.image_url : `http://localhost${ad.image_url}`}
+              src={toAbsoluteImageUrl(ad.image_url)}
               alt={ad.title}
               className="w-full h-64 object-cover"
               onError={(e) => {

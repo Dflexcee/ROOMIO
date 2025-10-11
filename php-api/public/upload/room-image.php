@@ -1,10 +1,8 @@
 <?php
 // Add CORS headers first
 header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: http://localhost:5173');
-header('Access-Control-Allow-Methods: POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
-header('Access-Control-Allow-Credentials: true');
+require_once '../../lib/UrlHelper.php';
+UrlHelper::applyCorsHeaders();
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
@@ -12,6 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 require_once '../../config.php';
 require_once '../../bootstrap.php';
+require_once '../../lib/UrlHelper.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
@@ -58,7 +57,7 @@ if (!move_uploaded_file($file['tmp_name'], $filepath)) {
 }
 
 // Generate public URL
-$publicUrl = 'http://localhost/roomio/php-api/uploads/room-images/' . $filename;
+$publicUrl = UrlHelper::getUploadUrl('/room-images/' . $filename);
 
 json_response([
     'success' => true,

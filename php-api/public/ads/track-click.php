@@ -6,17 +6,10 @@
 require_once '../../config.php';
 require_once '../../bootstrap.php';
 require_once '../../lib/Auth.php';
+require_once '../../lib/UrlHelper.php';
 
 // Handle CORS
-$allowed_origins = ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://127.0.0.1:5173'];
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-
-if (in_array($origin, $allowed_origins)) {
-    header("Access-Control-Allow-Origin: $origin");
-    header('Access-Control-Allow-Credentials: true');
-    header('Access-Control-Allow-Methods: POST, OPTIONS');
-    header('Access-Control-Allow-Headers: Content-Type, X-Requested-With');
-}
+UrlHelper::applyCorsHeaders();
 
 // Handle preflight
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {

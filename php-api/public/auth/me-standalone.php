@@ -1,10 +1,9 @@
 <?php
 // Standalone auth/me endpoint without bootstrap
 header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: http://localhost:5173');
-header('Access-Control-Allow-Credentials: true');
-header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
+require_once __DIR__ . '/../../lib/UrlHelper.php';
+require_once __DIR__ . '/../../lib/Config.php';
+UrlHelper::applyCorsHeaders();
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
@@ -24,7 +23,14 @@ if (!isset($_SESSION['user_id'])) {
 
 // Connect to database
 try {
-    $pdo = new PDO('mysql:host=localhost;dbname=roomio;charset=utf8mb4', 'root', '');
+    $host = Config::get('DB_HOST', 'localhost');
+    $dbname = Config::get('DB_NAME', 'roomio');
+    $username = Config::get('DB_USER', 'root');
+    $password = Config::get('DB_PASS', '');
+    $charset = 'utf8mb4';
+    
+    $dsn = "mysql:host={$host};dbname={$dbname};charset={$charset}";
+    $pdo = new PDO($dsn, $username, $password);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
     // Get user

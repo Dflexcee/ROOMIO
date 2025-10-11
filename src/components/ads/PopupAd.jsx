@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import config from '../../config/api';
+import { toAbsoluteImageUrl } from '../../utils/urlHelper';
 
 /**
  * Popup Ad Component
@@ -135,7 +136,7 @@ export default function PopupAd({ ad: propAd, onClose }) {
           {ad.image_url && (
             <div className="relative">
               <img
-                src={ad.image_url.startsWith('http') ? ad.image_url : `http://localhost${ad.image_url}`}
+                src={toAbsoluteImageUrl(ad.image_url)}
                 alt={ad.title}
                 className="w-full h-64 sm:h-80 object-cover"
                 onError={(e) => {

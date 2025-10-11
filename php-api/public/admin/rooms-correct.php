@@ -1,21 +1,20 @@
 <?php
 // Admin Rooms API - Using Correct Table Structure
 header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: http://localhost:5173');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
-header('Access-Control-Allow-Credentials: true');
+require_once __DIR__ . '/../../lib/UrlHelper.php';
+require_once __DIR__ . '/../../lib/Config.php';
+UrlHelper::applyCorsHeaders();
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
 try {
-    // Direct database connection
-    $host = '127.0.0.1';
-    $dbname = 'roomio';
-    $username = 'ruser';
-    $password = 'cord3001';
+    // Database connection using config
+    $host = Config::get('DB_HOST', 'localhost');
+    $dbname = Config::get('DB_NAME', 'roomio');
+    $username = Config::get('DB_USER', 'root');
+    $password = Config::get('DB_PASS', '');
     $charset = 'utf8mb4';
     
     $dsn = "mysql:host={$host};dbname={$dbname};charset={$charset}";

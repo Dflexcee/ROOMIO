@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import PageWrapper from "../../components/common/PageWrapper";
 import { useCurrency } from "../../contexts/CurrencyContext";
 import config from "../../config/api";
+import { toAbsoluteImageUrl } from "../../utils/urlHelper";
 
 export default function ListingsSimple() {
   const { formatCurrency } = useCurrency();
@@ -68,7 +69,7 @@ export default function ListingsSimple() {
                   <div className="flex items-center">
                     {Array.isArray(listing.images) && listing.images.length > 0 && (
                       <img
-                        src={listing.images[0].startsWith('http') ? listing.images[0] : `http://localhost${listing.images[0]}`}
+                        src={toAbsoluteImageUrl(listing.images[0])}
                         alt={listing.title}
                         className="w-16 h-16 object-cover rounded mr-3"
                         onError={(e) => {
@@ -142,7 +143,7 @@ export default function ListingsSimple() {
               {Array.isArray(selectedListing.images) && selectedListing.images.length > 0 && (
                 <div className="mb-4">
                   <img
-                    src={selectedListing.images[imageIndex].startsWith('http') ? selectedListing.images[imageIndex] : `http://localhost${selectedListing.images[imageIndex]}`}
+                    src={toAbsoluteImageUrl(selectedListing.images[imageIndex])}
                     alt={selectedListing.title}
                     className="w-full h-64 object-cover rounded-lg mb-2"
                     onError={(e) => {
@@ -155,7 +156,7 @@ export default function ListingsSimple() {
                       {selectedListing.images.map((img, idx) => (
                         <img
                           key={idx}
-                          src={img.startsWith('http') ? img : `http://localhost${img}`}
+                          src={toAbsoluteImageUrl(img)}
                           alt={`${selectedListing.title} ${idx + 1}`}
                           className={`w-20 h-20 object-cover rounded cursor-pointer border-2 ${
                             idx === imageIndex ? 'border-blue-500' : 'border-gray-300'

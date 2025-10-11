@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import PageWrapper from '../../components/common/PageWrapper';
 import config from '../../config/api.js';
 import LazyImage from '../../components/common/LazyImage';
+import { toAbsoluteImageUrl } from '../../utils/urlHelper';
 
 export default function VerificationManagement() {
   const [users, setUsers] = useState([]);
@@ -530,7 +531,7 @@ export default function VerificationManagement() {
                   <div className="border-b pb-4">
                     <h3 className="text-lg font-semibold mb-3">Profile Picture</h3>
                     <LazyImage
-                      src={viewingVerification.profile_picture.startsWith('http') ? viewingVerification.profile_picture : `http://localhost${viewingVerification.profile_picture}`}
+                      src={toAbsoluteImageUrl(viewingVerification.profile_picture)}
                       alt="Profile"
                       className="w-48 h-48 object-cover rounded-lg border"
                     />
@@ -561,7 +562,7 @@ export default function VerificationManagement() {
                       <div>
                         <label className="text-sm font-medium text-gray-600 block mb-2">ID Document</label>
                         <LazyImage
-                          src={viewingVerification.government_id_image.startsWith('http') ? viewingVerification.government_id_image : `http://localhost${viewingVerification.government_id_image}`}
+                          src={toAbsoluteImageUrl(viewingVerification.government_id_image)}
                           alt="Government ID"
                           className="max-w-md w-full object-contain rounded-lg border"
                         />
@@ -594,7 +595,7 @@ export default function VerificationManagement() {
                       <div>
                         <label className="text-sm font-medium text-gray-600 block mb-2">School ID Document</label>
                         <LazyImage
-                          src={viewingVerification.school_id_image.startsWith('http') ? viewingVerification.school_id_image : `http://localhost${viewingVerification.school_id_image}`}
+                          src={toAbsoluteImageUrl(viewingVerification.school_id_image)}
                           alt="School ID"
                           className="max-w-md w-full object-contain rounded-lg border"
                         />

@@ -5,6 +5,7 @@ import Navbar from "../components/common/Navbar";
 import DarkModeToggle from "../components/common/DarkModeToggle";
 import { FaArrowLeft, FaPaperclip, FaSmile, FaPaperPlane, FaTimes, FaDownload } from 'react-icons/fa';
 import config from "../config/api.js";
+import { toAbsoluteImageUrl } from "../utils/urlHelper";
 import LazyImage from "../components/common/LazyImage";
 import BannerAd from "../components/ads/BannerAd";
 import PopupAd from "../components/ads/PopupAd";
@@ -206,11 +207,11 @@ export default function ChatDetailModern() {
             {isImage && message.file_url ? (
               <div>
                 <LazyImage
-                  src={message.file_url.startsWith('http') ? message.file_url : `http://localhost${message.file_url}`}
+                  src={toAbsoluteImageUrl(message.file_url)}
                   alt={message.file_name || 'Image'}
                   className="max-w-full rounded-lg cursor-pointer hover:opacity-90 mb-1"
                   style={{ maxHeight: '300px' }}
-                  onClick={() => setPreviewImage(message.file_url.startsWith('http') ? message.file_url : `http://localhost${message.file_url}`)}
+                  onClick={() => setPreviewImage(toAbsoluteImageUrl(message.file_url))}
                 />
                 {message.content && (
                   <p className="text-sm mt-1">{message.content}</p>

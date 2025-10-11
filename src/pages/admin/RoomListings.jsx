@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import PageWrapper from "../../components/common/PageWrapper";
 import config from "../../config/api.js";
 import { useCurrency } from "../../contexts/CurrencyContext";
+import { toAbsoluteImageUrl } from "../../utils/urlHelper";
 
 export default function RoomListings() {
   const { formatCurrency } = useCurrency();
@@ -434,7 +435,7 @@ export default function RoomListings() {
                       {editFormData.images.map((img, idx) => (
                         <img
                           key={idx}
-                          src={img.startsWith('http') ? img : `http://localhost${img}`}
+                          src={toAbsoluteImageUrl(img)}
                           alt={`Room ${idx + 1}`}
                           className="w-20 h-20 object-cover rounded border"
                           onError={(e) => {

@@ -5,6 +5,7 @@ session_destroy();
 setcookie(session_name(), '', time()-3600, '/');
 
 header('Content-Type: text/html');
+require_once __DIR__ . '/../../lib/UrlHelper.php';
 ?>
 <!DOCTYPE html>
 <html>
@@ -45,7 +46,7 @@ header('Content-Type: text/html');
     <div class="container">
         <h1>✅ Session Cleared!</h1>
         <p>Your browser session has been completely cleared.</p>
-        <a href="http://localhost:5173">Return to App</a>
+        <a href="<?php echo UrlHelper::getFrontendUrl(); ?>">Return to App</a>
     </div>
 </body>
 </html>

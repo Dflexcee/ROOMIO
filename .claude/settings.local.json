@@ -32,7 +32,12 @@
       "Bash(do echo \"=== $file ===\")",
       "Bash(done)",
       "Bash(./mysql.exe:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(git checkout:*)",
+      "Bash(dir:*)",
+      "Bash(npm run dev:*)",
+      "Bash(cat:*)",
+      "Bash(./test_admin_apis.sh:*)"
     ],
     "deny": [],
     "ask": []

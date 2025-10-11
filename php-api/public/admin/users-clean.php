@@ -4,15 +4,9 @@ error_reporting(0);
 ini_set('display_errors', 0);
 
 header('Content-Type: application/json');
-
-// Allow both development ports
-$allowed_origins = ['http://localhost:5173', 'http://localhost:5174'];
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-if (in_array($origin, $allowed_origins)) {
-    header('Access-Control-Allow-Origin: ' . $origin);
-} else {
-    header('Access-Control-Allow-Origin: http://localhost:5174');
-}
+require_once __DIR__ . '/../../lib/UrlHelper.php';
+require_once __DIR__ . '/../../lib/Config.php';
+UrlHelper::applyCorsHeaders();
 
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
@@ -23,7 +17,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 try {
-    $pdo = new PDO('mysql:host=127.0.0.1;dbname=roomio;charset=utf8mb4', 'root', '');
+    $host = Config::get('DB_HOST', 'localhost');
+    $dbname = Config::get('DB_NAME', 'roomio');
+    $username = Config::get('DB_USER', 'root');
+    $password = Config::get('DB_PASS', '');
+    $charset = 'utf8mb4';
+    
+    $dsn = "mysql:host={$host};dbname={$dbname};charset={$charset}";
+    $pdo = new PDO($dsn, $username, $password);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {

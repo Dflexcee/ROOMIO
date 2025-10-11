@@ -5,6 +5,8 @@
  * Uses SMTP settings from database
  */
 
+require_once __DIR__ . '/UrlHelper.php';
+
 class EmailSender {
     private $pdo;
     private $usePHPMailer = true;
@@ -271,7 +273,7 @@ class EmailSender {
                     <p><strong>Message:</strong></p>
                     <p>{$message}</p>
                     <p style='margin-top: 20px;'>
-                        <a href='http://localhost:5173/help-center' class='button'>View Ticket</a>
+                        <a href='" . UrlHelper::getFrontendUrl('/help-center') . "' class='button'>View Ticket</a>
                     </p>
                 </div>
                 <div class='footer'>
@@ -317,7 +319,7 @@ class EmailSender {
                         <p>" . nl2br(htmlspecialchars($replyMessage)) . "</p>
                     </div>
                     <p style='margin-top: 20px;'>
-                        <a href='http://localhost:5173/help-center' class='button'>View Conversation</a>
+                        <a href='" . UrlHelper::getFrontendUrl('/help-center') . "' class='button'>View Conversation</a>
                     </p>
                 </div>
                 <div class='footer'>

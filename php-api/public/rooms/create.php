@@ -5,6 +5,7 @@
 require_once __DIR__ . "/../../bootstrap.php";
 require_once __DIR__ . "/../../config.php";
 require_once __DIR__ . "/../../lib/Auth.php";
+require_once __DIR__ . "/../../lib/UrlHelper.php";
 
 $user = require_auth($pdo);
 
@@ -107,7 +108,7 @@ try {
                     $filePath = $uploadDir . $newFileName;
 
                     if (move_uploaded_file($fileTmpName, $filePath)) {
-                        $imageUrls[] = 'http://localhost/roomio/php-api/uploads/room-images/' . $newFileName;
+                        $imageUrls[] = UrlHelper::getUploadUrl('/room-images/' . $newFileName);
                     }
                 }
             }

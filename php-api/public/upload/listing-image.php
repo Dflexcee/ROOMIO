@@ -6,6 +6,7 @@
 require_once '../../config.php';
 require_once '../../bootstrap.php';
 require_once '../../lib/Auth.php';
+require_once '../../lib/UrlHelper.php';
 
 // Require authentication
 $user = require_auth($pdo);
@@ -57,7 +58,7 @@ try {
     }
 
     // Return URL
-    $imageUrl = 'http://localhost/roomio/php-api/uploads/listing-images/' . $filename;
+    $imageUrl = UrlHelper::getUploadUrl('/listing-images/' . $filename);
 
     json_response([
         'success' => true,

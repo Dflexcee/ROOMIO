@@ -190,7 +190,7 @@ export default function Users() {
       // Try alternative API URL as fallback
       try {
         console.log('Trying fallback API URL...');
-        const fallbackUrl = 'http://localhost/roomio/php-api/public/admin/users-clean.php';
+        const fallbackUrl = config.getUrl('/admin/users-clean.php');
         const fallbackResponse = await fetch(fallbackUrl, {
           method: 'PUT',
           headers: {

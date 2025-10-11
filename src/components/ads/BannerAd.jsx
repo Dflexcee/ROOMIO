@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import config from '../../config/api';
+import { toAbsoluteImageUrl } from '../../utils/urlHelper';
 
 /**
  * Banner Ad Component
@@ -86,7 +87,7 @@ export default function BannerAd({ position = 'top' }) {
           >
             {ad.image_url && (
               <img
-                src={ad.image_url.startsWith('http') ? ad.image_url : `http://localhost${ad.image_url}`}
+                src={toAbsoluteImageUrl(ad.image_url)}
                 alt={ad.title}
                 className="h-12 w-12 object-cover rounded"
                 onError={(e) => {
