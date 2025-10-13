@@ -7,6 +7,7 @@
 require_once '../../config.php';
 require_once '../../bootstrap.php';
 require_once '../../lib/Auth.php';
+require_once '../../lib/UrlHelper.php';
 
 header('Content-Type: application/json');
 
@@ -126,7 +127,7 @@ try {
             'id' => $selectedAd['id'],
             'title' => $selectedAd['title'],
             'description' => $selectedAd['description'],
-            'image_url' => $selectedAd['image_url'],
+            'image_url' => UrlHelper::toAbsoluteUrl($selectedAd['image_url']),
             'target_link' => $selectedAd['target_link'],
             'display_duration' => $selectedAd['display_duration'] ?? 5,
             'skip_after_seconds' => $selectedAd['skip_after_seconds'] ?? 3,

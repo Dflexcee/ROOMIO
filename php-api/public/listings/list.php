@@ -5,6 +5,7 @@
 
 require_once '../../config.php';
 require_once '../../bootstrap.php';
+require_once '../../lib/UrlHelper.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     json_response(['error' => 'Method not allowed'], 405);
@@ -91,9 +92,17 @@ try {
     foreach ($listings as &$listing) {
         if (isset($listing['images']) && is_string($listing['images'])) {
             $listing['images'] = json_decode($listing['images'], true) ?: [];
+            // Convert image paths to absolute URLs
+            $listing['images'] = array_map(function($img) {
+                return UrlHelper::toAbsoluteUrl($img);
+            }, $listing['images']);
         }
         if (isset($listing['specifications']) && is_string($listing['specifications'])) {
             $listing['specifications'] = json_decode($listing['specifications'], true) ?: [];
+        }
+        // Convert poster avatar to absolute URL
+        if (isset($listing['poster_avatar']) && !empty($listing['poster_avatar'])) {
+            $listing['poster_avatar'] = UrlHelper::toAbsoluteUrl($listing['poster_avatar']);
         }
     }
 

@@ -6,6 +6,7 @@
 require_once '../../config.php';
 require_once '../../bootstrap.php';
 require_once '../../lib/Auth.php';
+require_once '../../lib/UrlHelper.php';
 
 $user = require_auth($pdo);
 
@@ -27,6 +28,10 @@ try {
     foreach ($listings as &$listing) {
         if (isset($listing['images']) && is_string($listing['images'])) {
             $listing['images'] = json_decode($listing['images'], true) ?: [];
+            // Convert image paths to absolute URLs
+            $listing['images'] = array_map(function($img) {
+                return UrlHelper::toAbsoluteUrl($img);
+            }, $listing['images']);
         }
         if (isset($listing['specifications']) && is_string($listing['specifications'])) {
             $listing['specifications'] = json_decode($listing['specifications'], true) ?: [];

@@ -110,10 +110,14 @@ try {
     // Decode JSON fields if they exist
     if (isset($room['images']) && $room['images']) {
         $room['images'] = json_decode($room['images'], true) ?: [];
+        // Convert image paths to absolute URLs
+        $room['images'] = array_map(function($img) {
+            return UrlHelper::toAbsoluteUrl($img);
+        }, $room['images']);
     } else {
         $room['images'] = [];
     }
-    
+
     if (isset($room['amenities']) && $room['amenities']) {
         $room['amenities'] = json_decode($room['amenities'], true) ?: [];
     } else {

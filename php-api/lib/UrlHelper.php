@@ -39,21 +39,32 @@ class UrlHelper {
         if (empty($path)) {
             return '';
         }
-        
+
         // Already an absolute URL
         if (preg_match('/^https?:\/\//', $path)) {
             return $path;
         }
-        
+
         // Relative path - convert to absolute
-        if (str_starts_with($path, '/roomio/')) {
-            return self::getUploadUrl(str_replace('/roomio/php-api/uploads/', '', $path));
+        // Handle both /roomio/php-api/uploads/ (local) and /php-api/uploads/ (production)
+        $path = ltrim($path, '/');
+
+        // Remove /roomio/ prefix if present (local development)
+        if (str_starts_with($path, 'roomio/')) {
+            $path = substr($path, 7); // Remove 'roomio/'
         }
-        
-        if (str_starts_with($path, '/')) {
-            return self::getUploadUrl($path);
+
+        // Remove /php-api/uploads/ prefix if present
+        if (str_starts_with($path, 'php-api/uploads/')) {
+            $path = substr($path, 16); // Remove 'php-api/uploads/'
         }
-        
+
+        // Remove uploads/ prefix if present
+        if (str_starts_with($path, 'uploads/')) {
+            $path = substr($path, 8); // Remove 'uploads/'
+        }
+
+        // Now path should be like 'avatars/123.jpg' or 'rooms/456.jpg'
         return self::getUploadUrl('/' . $path);
     }
     
@@ -94,5 +105,52 @@ class UrlHelper {
         foreach ($headers as $key => $value) {
             header("$key: $value");
         }
+    }
+
+    /**
+     * Convert image URLs in an array to absolute URLs
+     * Searches for common image field names and converts them
+     *
+     * @param array $data - Single record or array of records
+     * @param array $imageFields - Field names to convert (default: common image fields)
+     * @return array - Data with converted URLs
+     */
+    public static function convertImageUrls($data, $imageFields = null) {
+        if (empty($data)) {
+            return $data;
+        }
+
+        // Default image fields to convert
+        if ($imageFields === null) {
+            $imageFields = [
+                'avatar_url',
+                'image_url',
+                'profile_picture',
+                'id_card_url',
+                'id_card_front_url',
+                'id_card_back_url',
+                'business_license_url',
+                'poster_avatar',
+                'user_avatar',
+                'thumbnail_url'
+            ];
+        }
+
+        // Check if it's a single record or array of records
+        if (isset($data[0]) && is_array($data[0])) {
+            // Array of records
+            foreach ($data as &$record) {
+                $record = self::convertImageUrls($record, $imageFields);
+            }
+        } else {
+            // Single record
+            foreach ($imageFields as $field) {
+                if (isset($data[$field]) && !empty($data[$field]) && is_string($data[$field])) {
+                    $data[$field] = self::toAbsoluteUrl($data[$field]);
+                }
+            }
+        }
+
+        return $data;
     }
 }

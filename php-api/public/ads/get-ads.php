@@ -149,7 +149,7 @@ try {
                 'id' => $ad['id'],
                 'title' => $ad['title'],
                 'description' => $ad['description'],
-                'image_url' => $ad['image_url'],
+                'image_url' => UrlHelper::toAbsoluteUrl($ad['image_url']),
                 'target_link' => $ad['target_link'],
                 'ad_type' => $ad['ad_type'],
                 'display_duration' => $ad['display_duration'] ?? 5,

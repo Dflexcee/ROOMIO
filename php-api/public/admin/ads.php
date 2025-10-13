@@ -14,7 +14,7 @@ $ads = [
     [
         'id' => 1,
         'title' => 'Premium Room Listing',
-        'image_url' => '/uploads/ads/ad1.jpg',
+        'image_url' => UrlHelper::toAbsoluteUrl('/uploads/ads/ad1.jpg'),
         'target_listing' => 'All Listings',
         'status' => 'active',
         'created_at' => '2024-01-15T10:30:00Z'
@@ -22,7 +22,7 @@ $ads = [
     [
         'id' => 2,
         'title' => 'Roomio Pro Features',
-        'image_url' => '/uploads/ads/ad2.jpg',
+        'image_url' => UrlHelper::toAbsoluteUrl('/uploads/ads/ad2.jpg'),
         'target_listing' => 'Premium Listings',
         'status' => 'active',
         'created_at' => '2024-01-14T14:20:00Z'

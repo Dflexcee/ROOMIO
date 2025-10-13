@@ -98,6 +98,10 @@ try {
         // Decode JSON fields
         if (isset($room['images']) && is_string($room['images'])) {
             $room['images'] = json_decode($room['images'], true) ?: [];
+            // Convert image paths to absolute URLs
+            $room['images'] = array_map(function($img) {
+                return UrlHelper::toAbsoluteUrl($img);
+            }, $room['images']);
         }
         if (isset($room['amenities']) && is_string($room['amenities'])) {
             $room['amenities'] = json_decode($room['amenities'], true) ?: [];
@@ -115,6 +119,10 @@ try {
         // Decode JSON fields
         if (isset($listing['images']) && is_string($listing['images'])) {
             $listing['images'] = json_decode($listing['images'], true) ?: [];
+            // Convert image paths to absolute URLs
+            $listing['images'] = array_map(function($img) {
+                return UrlHelper::toAbsoluteUrl($img);
+            }, $listing['images']);
         }
         if (isset($listing['specifications']) && is_string($listing['specifications'])) {
             $listing['specifications'] = json_decode($listing['specifications'], true) ?: [];
@@ -145,6 +153,11 @@ try {
         if (count($rooms) > 0) $postTypes[] = count($rooms) . ' room' . (count($rooms) > 1 ? 's' : '');
         if (count($listings) > 0) $postTypes[] = count($listings) . ' listing' . (count($listings) > 1 ? 's' : '');
         $user['posts_summary'] = implode(' & ', $postTypes);
+
+        // Convert user avatar to absolute URL
+        if (isset($user['avatar_url']) && !empty($user['avatar_url'])) {
+            $user['avatar_url'] = UrlHelper::toAbsoluteUrl($user['avatar_url']);
+        }
     }
 
     json_response([

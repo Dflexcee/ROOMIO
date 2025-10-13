@@ -76,7 +76,7 @@ try {
                 'age' => $user['age'] ? (int)$user['age'] : null,
                 'gender' => $user['gender'] ?: null,
                 'about_me' => $user['about_me'] ?: '',
-                'avatar_url' => $user['avatar_url'] ?: '',
+                'avatar_url' => $user['avatar_url'] ? UrlHelper::toAbsoluteUrl($user['avatar_url']) : '',
                 'status_reason' => $user['status_reason'] ?: '',
                 'status_changed_at' => $user['status_changed_at'] ?: null,
                 'status_changed_by' => $user['status_changed_by'] ? (int)$user['status_changed_by'] : null,

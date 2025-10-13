@@ -1,6 +1,7 @@
 <?php
 require_once '../../config.php';
 require_once '../../bootstrap.php';
+require_once '../../lib/UrlHelper.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
@@ -86,6 +87,9 @@ try {
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
     $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Convert avatar URLs and file URLs to absolute
+    $messages = UrlHelper::convertImageUrls($messages, ['sender_avatar', 'receiver_avatar', 'file_url']);
 
     json_response([
         'success' => true,

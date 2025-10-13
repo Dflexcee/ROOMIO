@@ -61,7 +61,7 @@ try {
     $stmt->execute();
     $ads = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Calculate CTR for each ad
+    // Calculate CTR for each ad and convert image URLs
     foreach ($ads as &$ad) {
         $ad['impressions'] = (int)$ad['impressions'];
         $ad['clicks'] = (int)$ad['clicks'];
@@ -73,6 +73,11 @@ try {
             $ad['ctr'] = round(($ad['clicks'] / $ad['impressions']) * 100, 2);
         } else {
             $ad['ctr'] = 0;
+        }
+
+        // Convert image URL to absolute
+        if (isset($ad['image_url']) && !empty($ad['image_url'])) {
+            $ad['image_url'] = UrlHelper::toAbsoluteUrl($ad['image_url']);
         }
     }
 

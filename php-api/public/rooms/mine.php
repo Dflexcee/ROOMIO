@@ -2,6 +2,7 @@
 require_once __DIR__ . "/../../bootstrap.php";
 require_once __DIR__ . "/../../config.php";
 require_once __DIR__ . "/../../lib/Auth.php";
+require_once __DIR__ . "/../../lib/UrlHelper.php";
 
 $user = require_auth($pdo);
 
@@ -17,6 +18,10 @@ foreach ($rows as &$row) {
     if (isset($row["images"]) && $row["images"] !== null && $row["images"] !== "") {
         $decoded = json_decode($row["images"], true);
         $row["images"] = $decoded !== null ? $decoded : [];
+        // Convert image paths to absolute URLs
+        $row["images"] = array_map(function($img) {
+            return UrlHelper::toAbsoluteUrl($img);
+        }, $row["images"]);
     } else {
         $row["images"] = [];
     }

@@ -8,6 +8,7 @@
 require_once '../../config.php';
 require_once '../../bootstrap.php';
 require_once '../../lib/Auth.php';
+require_once '../../lib/UrlHelper.php';
 
 // Require admin authentication
 $admin = require_admin($pdo);
@@ -29,13 +30,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $stmt->execute();
         $rooms = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Parse JSON fields
+        // Parse JSON fields and convert image URLs
         foreach ($rooms as &$room) {
             if (isset($room['images']) && is_string($room['images'])) {
                 $room['images'] = json_decode($room['images'], true) ?: [];
+                // Convert image paths to absolute URLs
+                $room['images'] = array_map(function($img) {
+                    return UrlHelper::toAbsoluteUrl($img);
+                }, $room['images']);
             }
             if (isset($room['amenities']) && is_string($room['amenities'])) {
                 $room['amenities'] = json_decode($room['amenities'], true) ?: [];
+            }
+            // Convert owner avatar to absolute URL
+            if (isset($room['owner_avatar']) && !empty($room['owner_avatar'])) {
+                $room['owner_avatar'] = UrlHelper::toAbsoluteUrl($room['owner_avatar']);
             }
         }
 

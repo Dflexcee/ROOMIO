@@ -51,6 +51,10 @@ try {
         // Parse images JSON for rooms
         foreach ($rooms as &$room) {
             $room['images'] = json_decode($room['images'] ?? '[]', true) ?: [];
+            // Convert room images to absolute URLs
+            $room['images'] = array_map(function($img) {
+                return UrlHelper::toAbsoluteUrl($img);
+            }, $room['images']);
         }
         $user['rooms'] = $rooms;
         $user['total_rooms'] = count($rooms);
@@ -63,12 +67,19 @@ try {
         // Parse images JSON for listings
         foreach ($listings as &$listing) {
             $listing['images'] = json_decode($listing['images'] ?? '[]', true) ?: [];
+            // Convert listing images to absolute URLs
+            $listing['images'] = array_map(function($img) {
+                return UrlHelper::toAbsoluteUrl($img);
+            }, $listing['images']);
         }
         $user['listings'] = $listings;
         $user['total_listings'] = count($listings);
 
         $user['total_posts'] = $user['total_rooms'] + $user['total_listings'];
     }
+
+    // Convert user avatar_urls to absolute URLs
+    $users = UrlHelper::convertImageUrls($users);
 
     json_response(['users' => $users]);
     

@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../bootstrap.php';
 require_once __DIR__ . '/../../config.php';
+require_once __DIR__ . '/../../lib/UrlHelper.php';
 
 if (!isset($_SESSION['user_id'])) {
     error_log("Auth me.php: No user_id in session");
@@ -33,6 +34,11 @@ try {
     }
     if (!isset($user['posting_suspended_reason'])) {
         $user['posting_suspended_reason'] = '';
+    }
+
+    // Convert avatar_url to absolute URL
+    if (isset($user['avatar_url']) && !empty($user['avatar_url'])) {
+        $user['avatar_url'] = UrlHelper::toAbsoluteUrl($user['avatar_url']);
     }
 
     json_response(['user' => $user]);

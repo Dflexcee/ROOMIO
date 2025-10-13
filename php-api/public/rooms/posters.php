@@ -42,7 +42,7 @@ try {
     $stmt->execute();
     $posters = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Convert room_titles to array
+    // Convert room_titles to array and convert avatar URLs
     foreach ($posters as &$poster) {
         if ($poster['room_titles']) {
             $poster['rooms'] = explode('||', $poster['room_titles']);
@@ -50,6 +50,11 @@ try {
             $poster['rooms'] = [];
         }
         unset($poster['room_titles']);
+
+        // Convert avatar URL to absolute
+        if (isset($poster['avatar_url']) && !empty($poster['avatar_url'])) {
+            $poster['avatar_url'] = UrlHelper::toAbsoluteUrl($poster['avatar_url']);
+        }
     }
 
     json_response(['posters' => $posters, 'total' => count($posters)]);

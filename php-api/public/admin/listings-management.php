@@ -190,6 +190,10 @@ try {
                 } else {
                     $processedListing['images'] = $listing['images'] ?: [];
                 }
+                // Convert image paths to absolute URLs
+                $processedListing['images'] = array_map(function($img) {
+                    return UrlHelper::toAbsoluteUrl($img);
+                }, $processedListing['images']);
             } else {
                 $processedListing['images'] = [];
             }

@@ -41,7 +41,9 @@
       "Bash(netstat:*)",
       "Bash(findstr:*)",
       "Bash(./php/php.exe -r \"$pdo = new PDO(''mysql:host=localhost;dbname=roomio'', ''root'', ''''); echo ''Connection successful to roomio database'';\")",
-      "Bash(./php/php.exe -l php-api/bootstrap.php)"
+      "Bash(./php/php.exe -l php-api/bootstrap.php)",
+      "Bash(do if [ -f \"$file\" ])",
+      "Bash(then echo \"=== $file ===\")"
     ],
     "deny": [],
     "ask": []
