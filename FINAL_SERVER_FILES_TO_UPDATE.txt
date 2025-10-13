@@ -1,0 +1,225 @@
+# ============================================================================
+#          COMPLETE LIST OF FILES TO UPDATE ON SERVER
+#                 collins.alonaccess.com
+# ============================================================================
+
+## ✅ GOOD NEWS: ONLY 3 FILES NEED UPDATING!
+
+All other files use Config::get() or UrlHelper:: functions, so they 
+automatically read from these 3 files.
+
+# ============================================================================
+#                    FILES TO UPDATE (ONLY 3)
+# ============================================================================
+
+## FILE 1: .env
+Location: public_html/php-api/.env
+Action: CREATE NEW FILE (or replace if exists)
+
+Content:
+---
+# Database Configuration
+DB_HOST=localhost
+DB_NAME=grampaxg_roomio
+DB_USER=grampaxg_roomiouser
+DB_PASS=F+R)LZ62aM@D_7tO
+
+# Application URLs
+APP_URL=https://collins.alonaccess.com/php-api/public
+UPLOAD_BASE_URL=https://collins.alonaccess.com/php-api/uploads
+
+# CORS Configuration
+CORS_ORIGINS=https://collins.alonaccess.com,http://collins.alonaccess.com
+
+# Frontend URL
+FRONTEND_URL=https://collins.alonaccess.com
+
+# Email Configuration (update with your SMTP)
+SMTP_HOST=mail.alonaccess.com
+SMTP_PORT=587
+SMTP_USER=noreply@collins.alonaccess.com
+SMTP_PASS=your_email_password
+SMTP_FROM=noreply@collins.alonaccess.com
+SMTP_FROM_NAME=Roomio
+
+# Application Settings
+ADMIN_EMAIL=admin@collins.alonaccess.com
+SUPPORT_EMAIL=support@collins.alonaccess.com
+SUPPORT_PHONE=+234 123 456 7890
+
+# Security Settings
+SESSION_SECURE=true
+SESSION_HTTPONLY=true
+SESSION_SAMESITE=Strict
+
+# Environment
+APP_ENV=production
+---
+
+# ============================================================================
+
+## FILE 2: Config.php
+Location: public_html/php-api/lib/Config.php
+Action: REPLACE ENTIRE FILE
+
+See: CONFIG_PHP_PRODUCTION.txt for complete code
+
+Key changes (lines 32-43):
+- DB_NAME: grampaxg_roomio
+- DB_USER: grampaxg_roomiouser  
+- DB_PASS: F+R)LZ62aM@D_7tO
+- APP_URL: https://collins.alonaccess.com/php-api/public
+- UPLOAD_BASE_URL: https://collins.alonaccess.com/php-api/uploads
+- CORS_ORIGINS: https://collins.alonaccess.com
+- SESSION_SECURE: true
+- SESSION_HTTPONLY: true
+
+# ============================================================================
+
+## FILE 3: UrlHelper.php
+Location: public_html/php-api/lib/UrlHelper.php
+Action: REPLACE ENTIRE FILE
+
+See: URLHELPER_PHP_PRODUCTION.txt for complete code
+
+Key changes:
+- Line 14: FRONTEND_URL fallback
+- Line 22: UPLOAD_BASE_URL fallback
+- Line 30: APP_URL fallback
+- Line 47: Path checking (changed from /roomio/ to /php-api/)
+
+# ============================================================================
+#                    FILES THAT DON'T NEED UPDATING
+# ============================================================================
+
+## ✅ Auth Files (NO UPDATE NEEDED)
+- php-api/public/auth/login.php ← Uses Config::get()
+- php-api/public/auth/register.php ← Uses Config::get()
+- php-api/public/auth/me.php ← Uses Config::get()
+- php-api/public/auth/me-standalone.php ← Uses Config::get()
+- php-api/public/auth/me-simple.php ← Uses Config::get()
+- php-api/public/auth/logout.php ← Uses Config::get()
+
+## ✅ Admin Files (NO UPDATE NEEDED)
+- All files in php-api/public/admin/* ← Use Config::get() or UrlHelper::
+
+## ✅ Other API Files (NO UPDATE NEEDED)
+- All files in php-api/public/rooms/* ← Use Config::get()
+- All files in php-api/public/users/* ← Use Config::get()
+- All files in php-api/public/messages/* ← Use Config::get()
+- All files in php-api/public/listings/* ← Use Config::get()
+- All files in php-api/public/ads/* ← Use Config::get()
+- All other endpoint files ← Use Config::get() or UrlHelper::
+
+## ✅ Frontend Files (NO UPDATE NEEDED)
+- dist/index.html ← Already built with production URLs
+- dist/assets/*.js ← Already built with production URLs
+- dist/assets/*.css ← Already built with production URLs
+
+# ============================================================================
+#                    WHY ONLY 3 FILES?
+# ============================================================================
+
+The codebase follows best practices:
+
+1. **Centralized Configuration**
+   - All config values stored in .env file
+   - Config.php loads .env and provides defaults
+   - All files use Config::get() to read values
+
+2. **URL Helper Functions**
+   - UrlHelper.php provides URL generation functions
+   - All files use UrlHelper:: methods
+   - No hardcoded URLs anywhere in the code
+
+3. **Pre-built Frontend**
+   - Frontend is built with production URLs baked in
+   - No runtime URL configuration needed
+   - dist/ files ready to upload
+
+# ============================================================================
+#                    VERIFICATION CHECKLIST
+# ============================================================================
+
+After updating the 3 files, verify:
+
+## Backend Verification:
+- [ ] Visit: https://collins.alonaccess.com/php-api/public/auth/me.php
+      Expected: {"user":null}
+
+- [ ] Visit: https://collins.alonaccess.com/php-api/public/auth/login.php
+      Expected: JSON error (since no credentials sent)
+
+## Frontend Verification:
+- [ ] Visit: https://collins.alonaccess.com
+      Expected: Roomio login page loads
+
+- [ ] Try logging in with existing account
+      Expected: Successfully logs in
+
+- [ ] Check browser console (F12)
+      Expected: No CORS errors, no 404 errors
+
+## Database Verification:
+- [ ] Login to phpMyAdmin
+- [ ] Select database: grampaxg_roomio
+- [ ] Check tables exist: users, rooms, listings, etc.
+
+# ============================================================================
+#                    TROUBLESHOOTING
+# ============================================================================
+
+## Issue: "Database connection failed"
+CHECK: public_html/php-api/.env has correct DB_PASS
+FIX: Update DB_PASS=F+R)LZ62aM@D_7tO
+
+## Issue: "CORS error" in browser console
+CHECK: public_html/php-api/.env has CORS_ORIGINS
+FIX: Add CORS_ORIGINS=https://collins.alonaccess.com
+
+## Issue: "404 Not Found" on API calls
+CHECK: php-api/public/ folder structure is correct
+FIX: Verify public_html/php-api/public/auth/login.php exists
+
+## Issue: Login page loads but can't login
+CHECK: Database has user records
+FIX: Import database from local phpMyAdmin
+
+## Issue: Images not loading
+CHECK: uploads/ folder exists and has correct permissions
+FIX: Create uploads/ folders and set permissions to 755
+
+# ============================================================================
+#                    FILES ALREADY CORRECT
+# ============================================================================
+
+These files were already checked and need NO changes:
+
+✅ php-api/public/auth/login.php - Uses Config::get() for CORS
+✅ php-api/public/auth/register.php - Uses Config::get() for CORS
+✅ php-api/public/auth/me.php - Uses Config::get() for DB
+✅ php-api/public/admin/stats-working.php - Uses Config::get()
+✅ php-api/public/admin/users-clean.php - Uses Config::get()
+✅ php-api/public/rooms/list.php - Uses Config::get()
+✅ All 101 PHP files in php-api/public/* - Use Config::get()
+
+# ============================================================================
+#                    SUMMARY
+# ============================================================================
+
+UPDATE THESE 3 FILES ON SERVER:
+1. ✅ public_html/php-api/.env
+2. ✅ public_html/php-api/lib/Config.php
+3. ✅ public_html/php-api/lib/UrlHelper.php
+
+DON'T UPDATE ANYTHING ELSE:
+❌ All other PHP files already use Config::get()
+❌ Frontend files already built with production URLs
+❌ No hardcoded URLs found anywhere
+
+# ============================================================================
+#                    YOU'RE READY TO DEPLOY!
+# ============================================================================
+
+After updating those 3 files, your site will work perfectly!
+

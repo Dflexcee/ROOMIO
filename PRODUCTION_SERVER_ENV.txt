@@ -1,0 +1,41 @@
+# ============================================================================
+# FILE FOR YOUR SERVER: public_html/php-api/.env
+# Copy this ENTIRE content to your server
+# ============================================================================
+
+# Database Configuration (PRODUCTION)
+DB_HOST=localhost
+DB_NAME=grampaxg_roomio
+DB_USER=grampaxg_roomiouser
+DB_PASS=F+R)LZ62aM@D_7tO
+
+# Application URLs (PRODUCTION)
+APP_URL=https://collins.alonaccess.com/php-api/public
+UPLOAD_BASE_URL=https://collins.alonaccess.com/php-api/uploads
+
+# CORS Configuration (PRODUCTION)
+CORS_ORIGINS=https://collins.alonaccess.com,http://collins.alonaccess.com
+
+# Frontend URL (PRODUCTION)
+FRONTEND_URL=https://collins.alonaccess.com
+
+# Email Configuration (Update with your SMTP details)
+SMTP_HOST=mail.alonaccess.com
+SMTP_PORT=587
+SMTP_USER=noreply@collins.alonaccess.com
+SMTP_PASS=your_email_password_here
+SMTP_FROM=noreply@collins.alonaccess.com
+SMTP_FROM_NAME=Roomio
+
+# Application Settings
+ADMIN_EMAIL=admin@collins.alonaccess.com
+SUPPORT_EMAIL=support@collins.alonaccess.com
+SUPPORT_PHONE=+234 123 456 7890
+
+# Security Settings (PRODUCTION)
+SESSION_SECURE=true
+SESSION_HTTPONLY=true
+SESSION_SAMESITE=Strict
+
+# Environment
+APP_ENV=production

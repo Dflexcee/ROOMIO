@@ -1,0 +1,265 @@
+# ============================================================================
+#                   ROOMIO - COMPLETE DEPLOYMENT GUIDE
+#                   Domain: https://collins.alonaccess.com
+# ============================================================================
+
+## ✅ YOUR LOCAL SETUP (STAYS RUNNING - DON'T TOUCH!)
+
+Your local development is still running and working perfectly:
+- Local URL: http://localhost:5173
+- Local Database: roomio (username: root, password: empty)
+- Local API: http://localhost/roomio/php-api/public
+
+🎯 You can keep working locally while the production site runs separately!
+
+# ============================================================================
+#                        DEPLOYMENT STEPS
+# ============================================================================
+
+## STEP 1: UPLOAD FRONTEND FILES (React Build)
+
+1. Open your hosting File Manager
+2. Navigate to: public_html/
+3. DELETE old files (if they exist):
+   - Delete: index.html
+   - Delete: assets/ folder
+   
+4. UPLOAD NEW files from your computer:
+   FROM: C:\xampp\htdocs\roomio\dist\
+   TO: public_html/
+   
+   Upload ALL files from dist/:
+   ✅ index.html
+   ✅ assets/ (entire folder)
+   ✅ vite.svg (if exists)
+
+RESULT: public_html/index.html should exist
+
+# ============================================================================
+
+## STEP 2: UPLOAD BACKEND FILES (PHP API)
+
+1. In File Manager, navigate to: public_html/
+2. Check if php-api/ folder exists:
+   
+   IF php-api/ folder EXISTS:
+   - Skip to Step 3
+   
+   IF php-api/ folder DOESN'T EXIST:
+   - Upload entire php-api/ folder from your computer
+   FROM: C:\xampp\htdocs\roomio\php-api\
+   TO: public_html/php-api/
+
+RESULT: public_html/php-api/public/auth/login.php should exist
+
+# ============================================================================
+
+## STEP 3: CREATE .env FILE ON SERVER
+
+1. Navigate to: public_html/php-api/
+2. Create NEW file named: .env
+3. Copy content from: PRODUCTION_SERVER_ENV.txt (on your computer)
+4. Paste into server .env file
+5. SAVE the file
+
+CONTENT (from PRODUCTION_SERVER_ENV.txt):
+---
+DB_HOST=localhost
+DB_NAME=grampaxg_roomio
+DB_USER=grampaxg_roomiouser
+DB_PASS=F+R)LZ62aM@D_7tO
+APP_URL=https://collins.alonaccess.com/php-api/public
+UPLOAD_BASE_URL=https://collins.alonaccess.com/php-api/uploads
+CORS_ORIGINS=https://collins.alonaccess.com,http://collins.alonaccess.com
+FRONTEND_URL=https://collins.alonaccess.com
+SESSION_SECURE=true
+SESSION_HTTPONLY=true
+SESSION_SAMESITE=Strict
+APP_ENV=production
+---
+
+# ============================================================================
+
+## STEP 4: UPDATE Config.php ON SERVER
+
+1. Navigate to: public_html/php-api/lib/
+2. Edit file: Config.php
+3. Find lines 30-44 (the array_merge section)
+4. Replace with content from: PRODUCTION_CONFIG_UPDATE.txt
+5. SAVE the file
+
+SEE PRODUCTION_CONFIG_UPDATE.txt for exact code to copy
+
+# ============================================================================
+
+## STEP 5: CREATE UPLOAD FOLDERS (If not exist)
+
+1. Navigate to: public_html/
+2. Create folders (if they don't exist):
+   - uploads/
+   - uploads/avatars/
+   - uploads/rooms/
+   - uploads/listings/
+   - uploads/id-cards/
+   - uploads/chat-files/
+
+3. Set permissions to 755 or 777 for each folder
+
+# ============================================================================
+
+## STEP 6: CREATE .htaccess FILE (If not exist)
+
+1. Navigate to: public_html/
+2. Check if .htaccess exists
+3. If NOT, create new file: .htaccess
+4. Add this content:
+
+---
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+  
+  # Don't rewrite files or directories
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  
+  # Don't rewrite API requests
+  RewriteCond %{REQUEST_URI} !^/php-api/
+  
+  # Rewrite everything else to index.html
+  RewriteRule ^ index.html [L]
+</IfModule>
+
+Options -Indexes
+
+<IfModule mod_headers.c>
+  Header set X-Content-Type-Options "nosniff"
+  Header set X-Frame-Options "SAMEORIGIN"
+  Header set X-XSS-Protection "1; mode=block"
+</IfModule>
+---
+
+# ============================================================================
+
+## STEP 7: VERIFY DATABASE
+
+1. Open phpMyAdmin in your hosting
+2. Select database: grampaxg_roomio
+3. Check that tables exist:
+   - users
+   - rooms
+   - listings
+   - ads
+   - messages
+   - tickets
+   - etc.
+
+IF TABLES DON'T EXIST:
+- Export database from local phpMyAdmin (roomio database)
+- Import the SQL file to grampaxg_roomio
+
+# ============================================================================
+
+## STEP 8: TEST DEPLOYMENT
+
+1. TEST FRONTEND:
+   Open: https://collins.alonaccess.com
+   Expected: Roomio login page loads ✅
+
+2. TEST API:
+   Open: https://collins.alonaccess.com/php-api/public/auth/me.php
+   Expected: {"user":null} ✅
+
+3. TEST LOGIN:
+   - Try logging in with existing account
+   - Expected: Successfully logs in ✅
+
+# ============================================================================
+
+## 📂 FINAL SERVER STRUCTURE
+
+public_html/
+├── index.html          ✅ (from dist/)
+├── assets/             ✅ (from dist/)
+├── .htaccess           ✅ (for URL rewriting)
+├── php-api/            ✅ (entire php-api folder)
+│   ├── .env           ✅ (database credentials)
+│   ├── public/
+│   │   ├── auth/
+│   │   ├── admin/
+│   │   └── ...
+│   ├── lib/
+│   │   ├── Config.php  ✅ (updated with production values)
+│   │   └── UrlHelper.php
+│   └── vendor/
+└── uploads/            ✅ (with subfolders)
+    ├── avatars/
+    ├── rooms/
+    ├── listings/
+    ├── id-cards/
+    └── chat-files/
+
+# ============================================================================
+
+## 🔧 TROUBLESHOOTING
+
+ERROR: "Failed to fetch" or "Database connection failed"
+FIX: Check public_html/php-api/.env has correct database password
+
+ERROR: "404 Not Found" on API calls
+FIX: Check php-api/public/ folder exists with all PHP files
+
+ERROR: "404 on routes" (e.g., /dashboard shows 404)
+FIX: Check .htaccess file exists in public_html/
+
+ERROR: "CORS error"
+FIX: Check CORS_ORIGINS in .env includes your domain
+
+ERROR: "Upload failed"
+FIX: Check uploads/ folder permissions (should be 755 or 777)
+
+# ============================================================================
+
+## 📝 DEPLOYMENT CHECKLIST
+
+Before deploying:
+- [✅] Built production files (npm run build) - DONE
+- [✅] Created PRODUCTION_SERVER_ENV.txt - DONE
+- [✅] Created PRODUCTION_CONFIG_UPDATE.txt - DONE
+
+When deploying:
+- [ ] Upload dist/ → public_html/
+- [ ] Upload php-api/ → public_html/php-api/ (if not exists)
+- [ ] Create public_html/php-api/.env
+- [ ] Update public_html/php-api/lib/Config.php
+- [ ] Create uploads/ folders
+- [ ] Create .htaccess file
+- [ ] Verify database imported
+- [ ] Test frontend loads
+- [ ] Test API responds
+- [ ] Test login works
+
+# ============================================================================
+
+## 🎯 IMPORTANT NOTES
+
+1. ✅ Local code is NOT touched - still works at localhost
+2. ✅ Production files are in dist/ folder - ready to upload
+3. ✅ Server .env file has correct database password
+4. ✅ You can rebuild anytime with: npm run build
+5. ✅ You can change server settings without rebuilding
+
+# ============================================================================
+
+## 📞 NEED HELP?
+
+If you get stuck:
+1. Check server error logs in cPanel
+2. Verify all files uploaded correctly
+3. Double-check database credentials
+4. Test API endpoints in browser
+
+# ============================================================================
+#                           DEPLOYMENT READY!
+#                    Follow steps 1-8 and you're done!
+# ============================================================================

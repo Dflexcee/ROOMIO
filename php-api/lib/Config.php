@@ -49,7 +49,13 @@ class Config {
         foreach ($lines as $line) {
             if (strpos($line, '=') !== false && !str_starts_with(trim($line), '#')) {
                 list($key, $value) = explode('=', $line, 2);
-                self::$config[trim($key)] = trim($value);
+                $value = trim($value);
+                // Remove quotes from values if present
+                if ((substr($value, 0, 1) === '"' && substr($value, -1) === '"') ||
+                    (substr($value, 0, 1) === "'" && substr($value, -1) === "'")) {
+                    $value = substr($value, 1, -1);
+                }
+                self::$config[trim($key)] = $value;
             }
         }
     }

@@ -37,7 +37,11 @@
       "Bash(dir:*)",
       "Bash(npm run dev:*)",
       "Bash(cat:*)",
-      "Bash(./test_admin_apis.sh:*)"
+      "Bash(./test_admin_apis.sh:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(./php/php.exe -r \"$pdo = new PDO(''mysql:host=localhost;dbname=roomio'', ''root'', ''''); echo ''Connection successful to roomio database'';\")",
+      "Bash(./php/php.exe -l php-api/bootstrap.php)"
     ],
     "deny": [],
     "ask": []

@@ -42,9 +42,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 $isLocalDev = ($origin && in_array($origin, $allowedOrigins, true));
 
 if (session_status() === PHP_SESSION_NONE) {
+    // Set session lifetime (24 hours = 86400 seconds)
+    $sessionLifetime = (int)Config::get('SESSION_LIFETIME', '86400');
+    ini_set('session.gc_maxlifetime', $sessionLifetime);
+    ini_set('session.cookie_lifetime', $sessionLifetime);
+
     // Configure cookie for dev vs prod
     $cookieParams = [
-        'lifetime' => 0,
+        'lifetime' => $sessionLifetime,
         'path' => '/',
         'domain' => '',
         'secure' => Config::get('SESSION_SECURE', 'false') === 'true',
@@ -64,7 +69,7 @@ if (session_status() === PHP_SESSION_NONE) {
         );
     }
     session_start();
-    
+
     // Debug session info
     error_log("Session started: " . session_id());
     error_log("Session user_id: " . ($_SESSION['user_id'] ?? 'not set'));
